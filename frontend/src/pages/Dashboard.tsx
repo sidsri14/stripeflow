@@ -4,8 +4,18 @@ import { PlusCircle, Activity, ServerCrash, Clock, Trash2 } from 'lucide-react';
 import { api } from '../api';
 import CreateMonitorModal from '../components/CreateMonitorModal';
 
+interface Monitor {
+  id: string;
+  projectId: string;
+  url: string;
+  method: string;
+  interval: number;
+  status: string;
+  lastCheckedAt?: string;
+}
+
 const Dashboard: React.FC = () => {
-  const [monitors, setMonitors] = useState<any[]>([]);
+  const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();

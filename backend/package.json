@@ -1,7 +1,11 @@
 {
   "name": "backend",
   "module": "index.ts",
+  "type": "module",
   "private": true,
+  "ts-node": {
+    "esm": true
+  },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/bun": "latest",

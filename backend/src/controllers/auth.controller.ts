@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
-import { prisma } from '../utils/prisma';
-import { generateToken } from '../utils/jwt';
+import { prisma } from '../utils/prisma.js';
+import { generateToken } from '../utils/jwt.js';
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {

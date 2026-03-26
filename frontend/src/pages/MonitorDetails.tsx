@@ -1,15 +1,35 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Clock, Activity, CheckCircle, XCircle } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { api } from '../api';
 
+interface Log {
+  id: string;
+  monitorId: string;
+  statusCode?: number;
+  responseTime?: number;
+  status: string;
+  createdAt: string;
+}
+
+interface Monitor {
+  id: string;
+  projectId: string;
+  url: string;
+  method: string;
+  interval: number;
+  status: string;
+  lastCheckedAt?: string;
+  logs: Log[];
+}
+
 const MonitorDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [monitor, setMonitor] = useState<any>(null);
+  const [monitor, setMonitor] = useState<Monitor | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchMonitor = async () => {
+  const fetchMonitor = useCallback(async () => {
     try {
       const { data } = await api.get(`/monitors/${id}`);
       if (data.success) {
@@ -20,18 +40,18 @@ const MonitorDetails: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchMonitor();
     const interval = setInterval(fetchMonitor, 10000); // Poll every 10s
     return () => clearInterval(interval);
-  }, [id]);
+  }, [fetchMonitor]);
 
   if (loading && !monitor) return <div className="p-8 text-center">Loading details...</div>;
   if (!monitor) return <div className="p-8 text-center text-red-500">Monitor not found</div>;
 
-  const chartData = [...(monitor.logs || [])].reverse().map((log: any) => ({
+  const chartData = [...(monitor.logs || [])].reverse().map((log) => ({
     time: new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
     responseTime: log.responseTime || 0,
     status: log.status
@@ -109,7 +129,7 @@ const MonitorDetails: React.FC = () => {
           <h3 className="font-bold text-slate-800 dark:text-white">Recent Logs</h3>
         </div>
         <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-          {monitor.logs?.map((log: any) => (
+          {monitor.logs?.map((log) => (
             <li key={log.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
               <div className="flex items-center space-x-4">
                 {log.status === 'UP' ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : <XCircle className="w-5 h-5 text-red-500" />}

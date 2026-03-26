@@ -1,6 +1,20 @@
 import { prisma } from './utils/prisma';
 import { sendAlertEmail } from './services/email.service';
 
+interface MonitorWithProject {
+  id: string;
+  url: string;
+  method: string;
+  interval: number;
+  status: string;
+  lastCheckedAt?: Date;
+  project: {
+    user: {
+      email: string;
+    };
+  };
+}
+
 const CHECK_INTERVAL_MS = 10 * 1000; // Worker ticks every 10 seconds to check for due monitors
 
 const checkMonitors = async () => {
@@ -26,7 +40,7 @@ const checkMonitors = async () => {
   }
 };
 
-const executeCheck = async (monitor: any) => {
+const executeCheck = async (monitor: MonitorWithProject) => {
   const startTime = performance.now();
   let statusCode: number | null = null;
   let status = 'DOWN';

@@ -42,13 +42,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-function App() {
+// Simple PrivateRoute wrapper
+const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = !!localStorage.getItem('token');
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
 
-  // Simple PrivateRoute wrapper
-  const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
-    return isAuthenticated ? children : <Navigate to="/login" />;
-  };
+function App() {
 
   return (
     <Router>

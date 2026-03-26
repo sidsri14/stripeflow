@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { createMonitor, getMonitors, getMonitor, deleteMonitor } from '../controllers/monitor.controller';
-import { requireAuth } from '../middleware/auth.middleware';
+import { createMonitor, getMonitors, getMonitor, deleteMonitor } from '../controllers/monitor.controller.js';
+import { requireAuth } from '../middleware/auth.middleware.js';
 
 const router = Router();
 

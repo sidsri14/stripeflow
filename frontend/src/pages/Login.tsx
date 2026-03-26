@@ -20,8 +20,9 @@ const Login: React.FC = () => {
         // We do a hard reload to reset the app state with new auth context
         window.location.href = '/';
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to login');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'Failed to login');
     } finally {
       setLoading(false);
     }

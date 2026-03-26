@@ -32,8 +32,9 @@ const CreateMonitorModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => 
       } else {
         setError('Failed to create monitor. Please try again.');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to create monitor');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } }; message?: string };
+      setError(error.response?.data?.error || error.message || 'Failed to create monitor');
     } finally {
       setLoading(false);
     }

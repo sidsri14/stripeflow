@@ -19,8 +19,9 @@ const Register: React.FC = () => {
         localStorage.setItem('token', data.data.token);
         window.location.href = '/';
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to register');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'Failed to register');
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import monitorRoutes from './routes/monitor.routes';
 import { errorHandler } from './middleware/error.middleware';
+import './worker';
 
 dotenv.config();
 

@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import { prisma } from '../utils/prisma';
-import type { AuthRequest } from '../middleware/auth.middleware';
+import { prisma } from '../utils/prisma.js';
+import type { AuthRequest } from '../middleware/auth.middleware.js';
 
 // Note: In MVP, we might associate monitors directly with users or through projects. 
 // Our schema has Project -> Monitor. We will auto-create a default project if none exists.
