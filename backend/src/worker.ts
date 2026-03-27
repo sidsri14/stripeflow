@@ -116,35 +116,30 @@ const executeCheck = async (monitor: Monitor) => {
     status = 'DOWN';
   }
 
-  const responseTime = Math.round(performance.now() - startTime);
   const previousStatus = monitor.status;
-  // An incident should be managed if status is DOWN (regardless of change from PENDING) 
-  // or if a status change has occurred.
-  const isDown = status === 'DOWN';
-  const statusChanged = previousStatus !== status;
+  
+  // Phase 5: Failure Count & Strike Policy (Cooldown)
+  const isCurrentlyUp = status === 'UP';
+  const currentFailureCount = (monitor as any).failureCount ?? 0;
+  let nextFailureCount = isCurrentlyUp ? 0 : currentFailureCount + 1;
+  
+  // Transition to DOWN only after 3 consecutive failures
+  const effectiveStatus = (nextFailureCount >= 3) ? 'DOWN' : (isCurrentlyUp ? 'UP' : previousStatus);
+  const statusChanged = previousStatus !== effectiveStatus;
+  const isEffectivelyDown = effectiveStatus === 'DOWN';
 
-  // Log the unified result
-  await prisma.log.create({
-    data: {
-      monitorId: monitor.id,
-      statusCode,
-      responseTime,
-      status,
-    }
-  });
-
-  // Update physical monitor status state
-  await prisma.monitor.update({
-    where: { id: monitor.id },
-    data: {
-      status,
-      lastCheckedAt: new Date(),
-    }
-  });
+  // Update physical monitor status state using raw SQL to include failureCount
+  await prisma.$executeRaw`
+    UPDATE "Monitor" 
+    SET "status" = ${effectiveStatus}, 
+        "failureCount" = ${nextFailureCount}, 
+        "lastCheckedAt" = NOW() 
+    WHERE "id" = ${monitor.id}
+  `;
 
   // Phase 6: Incident Management & Alerting
-  if (isDown || statusChanged) {
-    if (isDown) {
+  if (isEffectivelyDown || statusChanged) {
+    if (isEffectivelyDown) {
       // 1. Open new incident if none exists already for this monitor
       const existingOpen = await prisma.incident.findFirst({
         where: { monitorId: monitor.id, resolvedAt: null }
@@ -188,7 +183,7 @@ const executeCheck = async (monitor: Monitor) => {
       } else {
         logger.info(`Suppressed duplicate DOWN alert for ${monitor.url} (15m Cooldown active)`);
       }
-    } else if (status === 'UP') {
+    } else if (effectiveStatus === 'UP' && statusChanged) {
       // Resolve any open incidents
       const openIncidents: any[] = await prisma.$queryRaw`
         SELECT id, "startedAt" FROM "Incident" 

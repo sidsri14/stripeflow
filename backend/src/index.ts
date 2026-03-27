@@ -8,7 +8,10 @@ import authRoutes from './routes/auth.routes';
 import monitorRoutes from './routes/monitor.routes';
 import incidentRoutes from './routes/incident.routes';
 import { errorHandler } from './middleware/error.middleware';
-import rateLimit from 'express-rate-limit';
+import { rateLimit } from 'express-rate-limit'; // Changed to named import
+import { ZodError } from 'zod'; // Added
+import { prisma } from './utils/prisma.js';
+import { successResponse, errorResponse } from './utils/apiResponse.js'; // Added
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -50,6 +53,18 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token']
 }));
 
+// Phase 5: Auth Rate Limiting
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 requests per window for auth actions
+  message: { error: 'Too many auth attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
 // Phase 2: CSRF Protection (double-submit signed cookie)
 const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
   getSecret: () => process.env.JWT_SECRET!,
@@ -69,21 +84,29 @@ app.get('/api/csrf-token', (req, res) => {
   res.json({ token });
 });
 
-// Phase 5: Auth Rate Limiting
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: 'Too many requests, please try again later.' }
-});
-
 // Apply CSRF protection to all mutating API routes
 app.use('/api', doubleCsrfProtection);
 
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/monitors', monitorRoutes);
 app.use('/api/incidents', incidentRoutes);
+
+// Phase 5: Public Status API
+app.get('/api/public/status', async (req, res) => {
+  try {
+    const monitors = await prisma.monitor.findMany({
+      select: {
+        id: true,
+        url: true,
+        status: true,
+        lastCheckedAt: true,
+      }
+    });
+    successResponse(res, monitors, 200);
+  } catch (error) {
+    errorResponse(res, 'Failed to fetch status', 500);
+  }
+});
 
 // Health check route
 app.get('/health', (req, res) => {

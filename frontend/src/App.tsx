@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import MonitorDetails from './pages/MonitorDetails';
+import PublicStatus from './pages/PublicStatus';
 import { Moon, Sun } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { api } from './api';
@@ -102,6 +103,7 @@ function App() {
     <Router>
       <Toaster position="top-right" />
       <Routes>
+        <Route path="/status" element={<PublicStatus />} />
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
         <Route path="/register" element={user ? <Navigate to="/" /> : <Register />} />
         <Route path="/*" element={

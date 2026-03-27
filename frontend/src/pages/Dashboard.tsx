@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 
 interface Monitor {
   id: string;
+  name: string;
   projectId: string;
   url: string;
   method: string;
@@ -87,6 +88,7 @@ const Dashboard: React.FC = () => {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('status');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'UP' | 'DOWN'>('ALL');
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
 
@@ -137,7 +139,11 @@ const Dashboard: React.FC = () => {
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return monitors
-      .filter(m => m.url.toLowerCase().includes(q) || m.method.toLowerCase().includes(q))
+      .filter(m => {
+        const matchesSearch = m.url.toLowerCase().includes(q) || m.name?.toLowerCase().includes(q);
+        const matchesStatus = statusFilter === 'ALL' || m.status === statusFilter;
+        return matchesSearch && matchesStatus;
+      })
       .sort((a, b) => {
         let cmp = 0;
         if (sortKey === 'status') {
@@ -299,6 +305,23 @@ const Dashboard: React.FC = () => {
               className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
             />
           </div>
+          
+          <div className="flex items-center bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-1 shadow-sm">
+            {(['ALL', 'UP', 'DOWN'] as const).map(s => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                  statusFilter === s 
+                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md' 
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
             <ArrowUpDown className="w-3.5 h-3.5" />
             <span>Sort:</span>

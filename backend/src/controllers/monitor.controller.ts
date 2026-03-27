@@ -3,9 +3,12 @@ import type { AuthRequest } from '../middleware/auth.middleware.js';
 import { MonitorService } from '../services/monitor.service.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
+import { MonitorSchema } from '../schemas/monitor.schema.js';
+
 export const createMonitor = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const monitor = await MonitorService.createMonitor(req.userId!, req.body);
+    const validatedData = MonitorSchema.parse(req.body);
+    const monitor = await MonitorService.createMonitor(req.userId!, validatedData);
     successResponse(res, monitor, 201);
   } catch (error: any) {
     errorResponse(res, error.message, error.status || 400);
