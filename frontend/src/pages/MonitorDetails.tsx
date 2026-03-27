@@ -48,10 +48,11 @@ const MonitorDetails: React.FC = () => {
         setMonitor(data.data);
         setError(null);
       }
-    } catch (err: any) {
-      const msg = err.response?.data?.error || 'Failed to fetch monitor details';
+    } catch (err: unknown) {
+      const normalized = err as { response?: { data?: { error?: string }; status?: number } };
+      const msg = normalized.response?.data?.error || 'Failed to fetch monitor details';
       setError(msg);
-      if (err.response?.status === 401) {
+      if (normalized.response?.status === 401) {
         toast.error('Session expired');
       }
     } finally {

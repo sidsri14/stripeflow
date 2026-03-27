@@ -1,7 +1,15 @@
 import axios from 'axios';
 
-// Get base URL from env or default dynamically to API prefix
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:3000/api');
+const getDefaultApiUrl = () => {
+  if (import.meta.env.PROD) return '/api';
+  if (typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:3000/api`;
+  }
+  return 'http://localhost:3000/api';
+};
+
+// Get base URL from env or derive from current host in development.
+const API_URL = import.meta.env.VITE_API_URL || getDefaultApiUrl();
 
 export const api = axios.create({
   baseURL: API_URL,

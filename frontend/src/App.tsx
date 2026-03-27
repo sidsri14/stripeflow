@@ -10,6 +10,12 @@ import { Moon, Sun } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { api } from './api';
 
+type AuthUser = {
+  id: string;
+  email: string;
+  createdAt: string;
+};
+
 const ThemeToggle = () => {
   const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
 
@@ -34,7 +40,7 @@ const ThemeToggle = () => {
 };
 
 function App() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   const checkAuth = async () => {
@@ -43,7 +49,7 @@ function App() {
       if (data.success) {
         setUser(data.data);
       }
-    } catch (err) {
+    } catch {
       setUser(null);
     } finally {
       setLoading(false);
@@ -59,7 +65,7 @@ function App() {
       await api.post('/auth/logout');
       setUser(null);
       window.location.href = '/login';
-    } catch (err) {
+    } catch {
       toast.error('Failed to logout');
     }
   };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   PlusCircle, Activity, ServerCrash, Clock, Trash2, AlertCircle,
@@ -93,7 +93,7 @@ const Dashboard: React.FC = () => {
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
 
-  const fetchMonitors = async (isManual = false) => {
+  const fetchMonitors = useCallback(async (isManual = false) => {
     try {
       if (isManual) setLoading(true);
       const { data } = await api.get('/monitors');
@@ -101,20 +101,21 @@ const Dashboard: React.FC = () => {
         setMonitors(data.data);
         setError(null);
       }
-    } catch (err: any) {
-      const msg = err.response?.data?.error || 'Failed to fetch monitors';
+    } catch (err: unknown) {
+      const normalized = err as { response?: { data?: { error?: string }; status?: number } };
+      const msg = normalized.response?.data?.error || 'Failed to fetch monitors';
       setError(msg);
-      if (err.response?.status === 401) navigate('/login');
+      if (normalized.response?.status === 401) navigate('/login');
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     fetchMonitors();
     const interval = setInterval(fetchMonitors, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchMonitors]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this monitor?')) return;
@@ -127,11 +128,12 @@ const Dashboard: React.FC = () => {
     try {
       await api.delete(`/monitors/${id}`);
       toast.success('Monitor deleted');
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const normalized = err as { response?: { data?: { error?: string }; status?: number } };
       setMonitors(prev);
-      const msg = err.response?.data?.error || 'Failed to delete monitor';
+      const msg = normalized.response?.data?.error || 'Failed to delete monitor';
       toast.error(msg);
-      if (err.response?.status === 401) navigate('/login');
+      if (normalized.response?.status === 401) navigate('/login');
     } finally {
       setDeletingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
     }
@@ -159,7 +161,7 @@ const Dashboard: React.FC = () => {
         }
         return sortDir === 'asc' ? cmp : -cmp;
       });
-  }, [monitors, search, sortKey, sortDir]);
+  }, [monitors, search, statusFilter, sortKey, sortDir]);
 
   const downCount = monitors.filter(m => m.status === 'DOWN').length;
   const upCount = monitors.filter(m => m.status === 'UP').length;

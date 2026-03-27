@@ -10,12 +10,9 @@ const COOKIE_OPTIONS = {
   maxAge: 24 * 60 * 60 * 1000, // 24 hours
 };
 
-import { RegisterSchema, LoginSchema } from '../schemas/auth.schema.js';
-
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const validatedData = RegisterSchema.parse(req.body);
-    const { user, token } = await AuthService.register(validatedData);
+    const { user, token } = await AuthService.register(req.body);
     
     res.cookie('token', token, COOKIE_OPTIONS);
     successResponse(res, { user }, 201);
@@ -30,8 +27,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const validatedData = LoginSchema.parse(req.body);
-    const { user, token } = await AuthService.login(validatedData);
+    const { user, token } = await AuthService.login(req.body);
     
     res.cookie('token', token, COOKIE_OPTIONS);
     successResponse(res, { user }, 200);

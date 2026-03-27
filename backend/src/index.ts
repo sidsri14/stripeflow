@@ -21,6 +21,14 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is required. Set it in your environment before starting the server.');
+}
+
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is required. Set it in your environment before starting the server.');
+}
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -67,7 +75,7 @@ app.use('/api/auth/register', authLimiter);
 
 // Phase 2: CSRF Protection (double-submit signed cookie)
 const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
-  getSecret: () => process.env.JWT_SECRET!,
+  getSecret: () => process.env.JWT_SECRET as string,
   getSessionIdentifier: (req) => req.ip ?? '',
   cookieName: 'x-csrf-token',
   cookieOptions: {

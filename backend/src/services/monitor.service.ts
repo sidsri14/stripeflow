@@ -16,7 +16,7 @@ export class MonitorService {
     return project;
   }
 
-  static async createMonitor(userId: string, data: any) {
+  static async createMonitor(userId: string, data: { name: string; url: string; method: string; interval: number }) {
     const { name, url, method, interval } = data;
 
     // Phase 5: SSD/SSRF Protection - Block local/private URLs at API level
@@ -40,24 +40,28 @@ export class MonitorService {
       throw error;
     }
 
-    const id = crypto.randomUUID();
+    const monitor = await prisma.monitor.create({
+      data: {
+        id: crypto.randomUUID(),
+        projectId: project.id,
+        name: name || url,
+        url,
+        method,
+        interval: Number(interval),
+        status: 'UP',
+        failureCount: 0,
+      },
+    });
 
-    // Raw insert for 'name' column support
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO "Monitor" (id, "projectId", name, url, method, interval, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, id, project.id, name || url, url, method, parseInt(interval, 10), 'UP');
-
-    return { id, projectId: project.id, name: name || url, url, method, interval: parseInt(interval, 10), status: 'UP' };
+    return monitor;
   }
 
   static async getMonitors(userId: string) {
     const project = await this.getDefaultProject(userId);
-    
-    // Fetch monitors with raw SQL to include 'name'
-    const monitors: any[] = await prisma.$queryRaw`
-      SELECT * FROM "Monitor" WHERE "projectId" = ${project.id}
-    `;
+    const monitors = await prisma.monitor.findMany({
+      where: { projectId: project.id },
+      orderBy: { id: 'desc' },
+    });
 
     const uptimeStats: any[] = await prisma.$queryRaw`
       SELECT 
@@ -72,20 +76,20 @@ export class MonitorService {
     `;
 
     // Map stats back to monitors
-    return monitors.map(m => {
-      const stats = uptimeStats.find(s => s.monitorId === m.id);
+    return monitors.map((monitor) => {
+      const stats = uptimeStats.find((s) => s.monitorId === monitor.id);
       const uptime30d = stats && stats.total > 0 
         ? parseFloat(((stats.up / stats.total) * 100).toFixed(2)) 
         : 100; // Default to 100% if no logs
 
       return { 
-        id: m.id,
-        name: m.name || m.url,
-        url: m.url,
-        method: m.method,
-        interval: m.interval,
-        status: m.status,
-        lastCheckedAt: m.lastCheckedAt,
+        id: monitor.id,
+        name: monitor.name || monitor.url,
+        url: monitor.url,
+        method: monitor.method,
+        interval: monitor.interval,
+        status: monitor.status,
+        lastCheckedAt: monitor.lastCheckedAt,
         uptime30d 
       };
     });
@@ -94,24 +98,18 @@ export class MonitorService {
   static async getMonitorById(userId: string, monitorId: string) {
     const project = await this.getDefaultProject(userId);
 
-    // Fetch with raw SQL to include 'name'
-    const monitors: any[] = await prisma.$queryRaw`
-      SELECT * FROM "Monitor" WHERE id = ${monitorId} AND "projectId" = ${project.id}
-    `;
-    const monitor = monitors[0];
+    const monitor = await prisma.monitor.findFirst({
+      where: { id: monitorId, projectId: project.id },
+      include: {
+        logs: { orderBy: { createdAt: 'desc' }, take: 50 },
+      },
+    });
 
     if (!monitor) {
       const error = new Error('Monitor not found');
       (error as any).status = 404;
       throw error;
     }
-
-    // Include logs manually
-    const logs = await prisma.log.findMany({ 
-      where: { monitorId }, 
-      orderBy: { createdAt: 'desc' }, 
-      take: 50 
-    });
 
     // Include incidents via raw SQL
     const incidents: any[] = await prisma.$queryRaw`

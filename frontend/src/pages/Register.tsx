@@ -22,8 +22,9 @@ const Register: React.FC = () => {
           window.location.href = '/';
         }, 500);
       }
-    } catch (err: any) {
-      const msg = err.response?.data?.error || err.message || 'Failed to register';
+    } catch (err: unknown) {
+      const normalized = err as { response?: { data?: { error?: string } }; message?: string };
+      const msg = normalized.response?.data?.error || normalized.message || 'Failed to register';
       setError(msg);
       toast.error(msg);
     } finally {
