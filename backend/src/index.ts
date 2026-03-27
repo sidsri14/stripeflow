@@ -9,7 +9,6 @@ import monitorRoutes from './routes/monitor.routes';
 import incidentRoutes from './routes/incident.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { rateLimit } from 'express-rate-limit'; // Changed to named import
-import { ZodError } from 'zod'; // Added
 import { prisma } from './utils/prisma.js';
 import { successResponse, errorResponse } from './utils/apiResponse.js'; // Added
 
@@ -20,6 +19,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config();
+
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is required. Set it in your environment before starting the server.');
+}
+
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is required. Set it in your environment before starting the server.');
+}
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -67,7 +74,7 @@ app.use('/api/auth/register', authLimiter);
 
 // Phase 2: CSRF Protection (double-submit signed cookie)
 const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
-  getSecret: () => process.env.JWT_SECRET!,
+  getSecret: () => process.env.JWT_SECRET as string,
   getSessionIdentifier: (req) => req.ip ?? '',
   cookieName: 'x-csrf-token',
   cookieOptions: {
@@ -94,15 +101,23 @@ app.use('/api/incidents', incidentRoutes);
 // Phase 5: Public Status API
 app.get('/api/public/status', async (req, res) => {
   try {
-    const monitors: any[] = await prisma.$queryRaw`
-      SELECT id, name, url, status, "lastCheckedAt" FROM "Monitor"
-    `;
-    const formatted = monitors.map(m => ({
-      id: m.id,
-      name: m.name || m.url,
-      url: m.url,
-      status: m.status,
-      lastCheckedAt: m.lastCheckedAt
+    const monitors = await prisma.monitor.findMany({
+      where: { isPublic: true },
+      select: {
+        id: true,
+        name: true,
+        url: true,
+        status: true,
+        lastCheckedAt: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+    const formatted = monitors.map((monitor) => ({
+      id: monitor.id,
+      name: monitor.name || monitor.url,
+      url: monitor.url,
+      status: monitor.status,
+      lastCheckedAt: monitor.lastCheckedAt,
     }));
     successResponse(res, formatted, 200);
   } catch (error) {

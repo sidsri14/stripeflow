@@ -29,10 +29,13 @@ model Monitor {
   id            String    @id @default(uuid())
   projectId     String
   project       Project   @relation(fields: [projectId], references: [id])
+  name          String
   url           String
   method        String    @default("GET")
   interval      Int       @default(60) // in seconds
   status        String    @default("PENDING") // "UP", "DOWN", "PENDING"
+  failureCount  Int       @default(0)
+  isPublic      Boolean   @default(false)
   lastCheckedAt DateTime?
   logs          Log[]
   alerts        Alert[]

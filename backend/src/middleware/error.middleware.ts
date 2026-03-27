@@ -6,10 +6,11 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
   
   const statusCode = err.statusCode || 500;
   const isProduction = process.env.NODE_ENV === 'production';
+  const exposeErrorDetails = process.env.DEBUG_ERRORS === 'true';
 
-  // Section 2: Error Hygiene (Hide details in prod for 500s)
-  const message = (isProduction && statusCode === 500) 
-    ? 'Internal Server Error' 
+  // Error hygiene: by default only expose explicit 4xx messages.
+  const message = statusCode >= 500 && !exposeErrorDetails
+    ? 'Internal Server Error'
     : err.message || 'Internal Server Error';
 
   res.status(statusCode).json({

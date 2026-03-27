@@ -128,14 +128,14 @@ const executeCheck = async (monitor: Monitor) => {
   const statusChanged = previousStatus !== effectiveStatus;
   const isEffectivelyDown = effectiveStatus === 'DOWN';
 
-  // Update physical monitor status state using raw SQL to include failureCount
-  await prisma.$executeRaw`
-    UPDATE "Monitor" 
-    SET "status" = ${effectiveStatus}, 
-        "failureCount" = ${nextFailureCount}, 
-        "lastCheckedAt" = NOW() 
-    WHERE "id" = ${monitor.id}
-  `;
+  await prisma.monitor.update({
+    where: { id: monitor.id },
+    data: {
+      status: effectiveStatus,
+      failureCount: nextFailureCount,
+      lastCheckedAt: new Date(),
+    },
+  });
 
   // Phase 6: Incident Management & Alerting
   if (isEffectivelyDown || statusChanged) {

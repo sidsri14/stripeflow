@@ -58,23 +58,33 @@ const PublicStatus: React.FC = () => {
         </div>
 
         <div className={`mb-8 p-6 rounded-2xl border flex items-center gap-4 ${
-          allSystemOperational 
+          monitors.length === 0
+            ? 'bg-slate-100 border-slate-200 text-slate-700'
+            : allSystemOperational 
             ? 'bg-emerald-50 border-emerald-100 text-emerald-800' 
             : 'bg-amber-50 border-amber-100 text-amber-800'
         }`}>
-          {allSystemOperational ? (
+          {monitors.length === 0 ? (
+            <AlertCircle className="w-8 h-8 text-slate-500" />
+          ) : allSystemOperational ? (
             <CheckCircle className="w-8 h-8 text-emerald-500" />
           ) : (
             <AlertCircle className="w-8 h-8 text-amber-500" />
           )}
           <div>
             <h2 className="text-lg font-bold">
-              {allSystemOperational ? 'All Systems Operational' : 'Partial System Outage'}
+              {monitors.length === 0
+                ? 'No Public Monitors Configured'
+                : allSystemOperational
+                  ? 'All Systems Operational'
+                  : 'Partial System Outage'}
             </h2>
             <p className="text-sm opacity-80">
-              {allSystemOperational 
-                ? 'We are currently monitoring all services and everything is running smoothly.' 
-                : 'We have detected some service interruptions. Our team is investigating.'}
+              {monitors.length === 0
+                ? 'The team has not published any monitor yet.'
+                : allSystemOperational
+                  ? 'We are currently monitoring all services and everything is running smoothly.' 
+                  : 'We have detected some service interruptions. Our team is investigating.'}
             </p>
           </div>
         </div>

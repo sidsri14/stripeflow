@@ -1,15 +1,44 @@
 # backend
 
-To install dependencies:
+## Prerequisites
+
+- Bun `>=1.2`
+- PostgreSQL (local or remote)
+
+## Environment
+
+Create `backend/.env` from `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Required variables:
+
+- `DATABASE_URL` (PostgreSQL connection string)
+- `JWT_SECRET` (long random secret)
+- `DEBUG_ERRORS` (`false` by default; set `true` only for local debugging)
+
+## Install dependencies
 
 ```bash
 bun install
 ```
 
-To run:
+## Apply schema
 
 ```bash
-bun run index.ts
+bunx prisma db push
 ```
 
-This project was created using `bun init` in bun v1.2.12. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+## Run API
+
+```bash
+bun run src/index.ts
+```
+
+## Optional: run worker
+
+```bash
+bun run src/worker.ts
+```
