@@ -2,8 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   PlusCircle, Activity, Clock, Trash2,
-  Search, RefreshCw, 
-  Settings2, PauseCircle,
+  Search, RefreshCw,
   TrendingUp, TrendingDown, Minus, ServerCrash, Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,10 +31,10 @@ interface Monitor {
   uptime30d?: number;
 }
 
-type SortKey = 'status' | 'url' | 'lastCheckedAt' | 'avgResponseTime';
+type SortKey = 'status' | 'url' | 'lastCheckedAt' | 'uptime30d';
 type SortDir = 'asc' | 'desc';
 
-// ── Skeleton Loader (Clean White)
+// ── Skeleton Loader
 const SkeletonCard = () => (
   <div className="glass-card animate-pulse shadow-sm !p-6 !rounded-2xl border border-blue-50 dark:border-white/5">
     <div className="h-2 bg-blue-500/5 dark:bg-white/5 rounded w-20 mb-3" />
@@ -85,17 +84,46 @@ const StatusDot: React.FC<{ status: string }> = ({ status }) => {
   return <span className="w-3 h-3 rounded-full bg-amber-400" />;
 };
 
+// ── Inline delete confirmation button
+const DeleteButton: React.FC<{ onConfirm: () => void; isPending: boolean }> = ({ onConfirm, isPending }) => {
+  const [confirming, setConfirming] = useState(false);
+
+  if (confirming) {
+    return (
+      <button
+        onClick={(e) => { e.stopPropagation(); onConfirm(); setConfirming(false); }}
+        disabled={isPending}
+        className="px-2 py-1 text-[10px] font-black uppercase text-white bg-red-500 hover:bg-red-600 rounded-lg transition-all"
+        title="Confirm delete"
+      >
+        Confirm
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); setConfirming(true); }}
+      disabled={isPending}
+      className="p-2 text-zinc-400 hover:text-red-600 rounded-lg hover:bg-red-500/10 transition-all"
+      title="Delete monitor"
+    >
+      <Trash2 className="w-5 h-5" />
+    </button>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('status');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'UP' | 'DOWN'>('ALL');
-  
+
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // ── Data Fetching with React Query
+  // ── Data Fetching
   const { data: monitorsResponse, isLoading, isFetching } = useQuery({
     queryKey: ['monitors'],
     queryFn: async () => {
@@ -114,7 +142,7 @@ const Dashboard: React.FC = () => {
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['monitors'] });
       const previousMonitors = queryClient.getQueryData(['monitors']);
-      queryClient.setQueryData(['monitors'], (old: Monitor[] | undefined) => 
+      queryClient.setQueryData(['monitors'], (old: Monitor[] | undefined) =>
         old?.filter(m => m.id !== id)
       );
       return { previousMonitors };
@@ -148,8 +176,8 @@ const Dashboard: React.FC = () => {
           cmp = a.url.localeCompare(b.url);
         } else if (sortKey === 'lastCheckedAt') {
           cmp = (new Date(a.lastCheckedAt || 0).getTime()) - (new Date(b.lastCheckedAt || 0).getTime());
-        } else if (sortKey === 'avgResponseTime') {
-          cmp = (a.avgResponseTime ?? Infinity) - (b.avgResponseTime ?? Infinity);
+        } else if (sortKey === 'uptime30d') {
+          cmp = (a.uptime30d ?? 100) - (b.uptime30d ?? 100);
         }
         return sortDir === 'asc' ? cmp : -cmp;
       });
@@ -157,11 +185,14 @@ const Dashboard: React.FC = () => {
 
   const downCount = monitors.filter(m => m.status === 'DOWN').length;
   const upCount = monitors.filter(m => m.status === 'UP').length;
-  const avgLatency = monitors.length > 0 
-    ? Math.round(monitors.reduce((acc, m) => acc + (m.avgResponseTime || 0), 0) / monitors.length) 
-    : 0;
-  const uptimePct = monitors.length > 0 
-    ? parseFloat(((upCount / monitors.length) * 100).toFixed(1)) 
+
+  // Avg 30-day uptime — the field the API actually returns per monitor
+  const avgUptime30d = monitors.length > 0
+    ? parseFloat((monitors.reduce((acc, m) => acc + (m.uptime30d ?? 100), 0) / monitors.length).toFixed(1))
+    : 100;
+
+  const uptimePct = monitors.length > 0
+    ? parseFloat(((upCount / monitors.length) * 100).toFixed(1))
     : 100;
 
   const toggleSort = (key: SortKey) => {
@@ -189,8 +220,8 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }} 
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-8"
     >
@@ -206,7 +237,7 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
           {isFetching && (
-            <RefreshCw className="w-5 h-5 text-stone-400 animate-spin" />
+            <RefreshCw className="w-5 h-5 text-stone-400 animate-spin" aria-label="Refreshing" />
           )}
           <button
             onClick={() => setIsModalOpen(true)}
@@ -223,17 +254,19 @@ const Dashboard: React.FC = () => {
           <p className="text-stone-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Targets</p>
           <div className="text-3xl font-bold text-stone-800 dark:text-stone-100">{monitors.length}</div>
         </motion.div>
-        
+
         <motion.div whileHover={{ y: -1 }} className="border border-warm-border dark:border-stone-700 rounded-xl p-6 bg-white dark:bg-stone-800 shadow-soft">
-          <p className="text-stone-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Avg Latency</p>
-          <div className="text-3xl font-bold text-stone-800 dark:text-stone-100">
-            {avgLatency}<span className="text-sm text-stone-300 ml-1 font-medium">ms</span>
+          <p className="text-stone-400 text-xs font-semibold uppercase tracking-wider mb-1.5">Avg Uptime (30d)</p>
+          <div className={cn("text-3xl font-bold transition-colors",
+            avgUptime30d >= 99 ? "text-emerald-600 dark:text-emerald-400" : avgUptime30d >= 95 ? "text-amber-500" : "text-red-500"
+          )}>
+            {avgUptime30d}<span className="text-sm opacity-30 ml-0.5">%</span>
           </div>
         </motion.div>
 
         <motion.div whileHover={{ y: -1 }} className={cn("border border-warm-border dark:border-stone-700 rounded-xl p-6 bg-white dark:bg-stone-800 shadow-soft border-l-4", downCount > 0 ? "border-l-red-400" : "border-l-transparent")}>
           <p className="text-stone-400 text-xs font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-2">
-            <ServerCrash className={cn("w-3 h-3 transition-colors", downCount > 0 ? "text-red-400 animate-pulse" : "text-stone-300")} /> Issues
+            <ServerCrash className={cn("w-3 h-3 transition-colors", downCount > 0 ? "text-red-400 animate-pulse" : "text-stone-300")} aria-hidden="true" /> Issues
           </p>
           <div className={cn("text-3xl font-bold transition-colors", downCount > 0 ? "text-red-500" : "text-stone-800 dark:text-stone-100")}>
             {downCount}
@@ -242,9 +275,9 @@ const Dashboard: React.FC = () => {
 
         <motion.div whileHover={{ y: -1 }} className="border border-warm-border dark:border-stone-700 rounded-xl p-6 bg-white dark:bg-stone-800 shadow-soft">
           <p className="text-stone-400 text-xs font-semibold uppercase tracking-wider mb-1.5 flex items-center gap-2">
-            <Shield className="w-3 h-3 text-stone-400" /> Uptime
+            <Shield className="w-3 h-3 text-stone-400" aria-hidden="true" /> Uptime
           </p>
-          <div className={cn("text-3xl font-bold transition-colors", 
+          <div className={cn("text-3xl font-bold transition-colors",
             uptimePct >= 99 ? "text-emerald-600 dark:text-emerald-400" : uptimePct >= 95 ? "text-amber-500" : "text-red-500"
           )}>
             {uptimePct}<span className="text-sm opacity-30 ml-0.5">%</span>
@@ -255,9 +288,10 @@ const Dashboard: React.FC = () => {
       {/* ── Toolbar */}
       <div className="flex flex-col xl:flex-row gap-4">
         <div className="relative flex-1 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-stone-600 transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-stone-600 transition-colors" aria-hidden="true" />
           <input
-            type="text"
+            type="search"
+            aria-label="Search monitors"
             placeholder="Search endpoint..."
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -266,15 +300,16 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap gap-2 items-center">
-          <div className="bg-white dark:bg-stone-800 border border-warm-border dark:border-stone-700 p-1 rounded-xl flex items-center">
+          <div className="bg-white dark:bg-stone-800 border border-warm-border dark:border-stone-700 p-1 rounded-xl flex items-center" role="group" aria-label="Filter by status">
             {(['ALL', 'UP', 'DOWN'] as const).map(s => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
+                aria-pressed={statusFilter === s}
                 className={cn(
                   "px-5 py-2 rounded-lg text-xs font-semibold transition-all",
-                  statusFilter === s 
-                    ? "bg-stone-700 dark:bg-stone-600 text-white shadow-sm" 
+                  statusFilter === s
+                    ? "bg-stone-700 dark:bg-stone-600 text-white shadow-sm"
                     : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-200"
                 )}
               >
@@ -283,20 +318,21 @@ const Dashboard: React.FC = () => {
             ))}
           </div>
 
-          <div className="border border-warm-border dark:border-stone-700 p-1 rounded-xl flex items-center gap-1.5 px-3 bg-white dark:bg-stone-800">
+          <div className="border border-warm-border dark:border-stone-700 p-1 rounded-xl flex items-center gap-1.5 px-3 bg-white dark:bg-stone-800" role="group" aria-label="Sort by">
             <span className="text-[10px] uppercase font-semibold text-stone-300 mr-1">Sort:</span>
-            {(['status', 'url', 'avgResponseTime'] as SortKey[]).map(key => (
+            {(['status', 'url', 'uptime30d'] as SortKey[]).map(key => (
               <button
                 key={key}
                 onClick={() => toggleSort(key)}
+                aria-pressed={sortKey === key}
                 className={cn(
                   "text-[10px] font-semibold tracking-wider uppercase px-2 py-1.5 rounded-lg transition-all",
-                  sortKey === key 
-                    ? "bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200" 
+                  sortKey === key
+                    ? "bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-200"
                     : "text-stone-300 hover:text-stone-600 dark:hover:text-stone-300"
                 )}
               >
-                {key.replace('avg', '')} {sortKey === key && (sortDir === 'asc' ? '↑' : '↓')}
+                {key === 'uptime30d' ? 'Uptime' : key} {sortKey === key && (sortDir === 'asc' ? '↑' : '↓')}
               </button>
             ))}
           </div>
@@ -308,15 +344,15 @@ const Dashboard: React.FC = () => {
         {filtered.length === 0 ? (
           <div className="p-20 text-center space-y-4">
             <div className="w-20 h-20 bg-stone-100 dark:bg-stone-700 rounded-full flex items-center justify-center mx-auto">
-              <Activity className="w-10 h-10 text-indigo-500 animate-pulse" />
+              <Activity className="w-10 h-10 text-indigo-500 animate-pulse" aria-hidden="true" />
             </div>
             <h3 className="text-2xl font-black custom-gradient-text uppercase">Securely Quiet.</h3>
             <p className="text-blue-400 dark:text-blue-500/60 max-w-xs mx-auto text-sm font-bold uppercase tracking-widest mt-2">
-              Add a monitor to begin.
+              {monitors.length === 0 ? 'Add a monitor to begin.' : 'No monitors match your filter.'}
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-indigo-500/5 dark:divide-white/5">
+          <ul className="divide-y divide-indigo-500/5 dark:divide-white/5" aria-label="Monitor list">
             <AnimatePresence mode="popLayout">
               {filtered.map((monitor) => (
                 <motion.li
@@ -338,15 +374,15 @@ const Dashboard: React.FC = () => {
                           {monitor.method}
                         </span>
                       </div>
-                      
+
                       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-bold text-blue-400 dark:text-blue-500/60 ml-6 uppercase tracking-tighter">
                         <span className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5" /> {monitor.interval}s 
+                          <Clock className="w-3.5 h-3.5" aria-hidden="true" /> {monitor.interval}s
                         </span>
                         <span className="flex items-center gap-1.5">
-                          <Activity className="w-3.5 h-3.5" /> 
-                          {monitor.lastCheckedAt 
-                            ? new Date(monitor.lastCheckedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                          <Activity className="w-3.5 h-3.5" aria-hidden="true" />
+                          {monitor.lastCheckedAt
+                            ? new Date(monitor.lastCheckedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                             : 'Never checked'}
                         </span>
                         <TrendBadge trend={monitor.responseTimeTrend} value={monitor.avgResponseTime} />
@@ -362,26 +398,10 @@ const Dashboard: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                      <button 
-                        className="p-2 text-zinc-400 hover:text-black dark:hover:text-white rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
-                        title="Quick Edit"
-                      >
-                        <Settings2 className="w-5 h-5" />
-                      </button>
-                      <button 
-                        className="p-2 text-zinc-400 hover:text-amber-500 rounded-lg hover:bg-amber-500/10 transition-all"
-                        title="Pause Monitoring"
-                      >
-                        <PauseCircle className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); if(confirm('Permanently delete?')) deleteMutation.mutate(monitor.id); }}
-                        className="p-2 text-zinc-400 hover:text-red-600 rounded-lg hover:bg-red-500/10 transition-all"
-                        disabled={deleteMutation.isPending}
-                        title="Delete Forever"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <DeleteButton
+                        onConfirm={() => deleteMutation.mutate(monitor.id)}
+                        isPending={deleteMutation.isPending}
+                      />
                     </div>
                   </div>
                 </motion.li>

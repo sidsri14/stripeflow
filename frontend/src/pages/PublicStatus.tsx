@@ -138,7 +138,7 @@ const PublicStatus: React.FC = () => {
                   >
                     <div className="flex flex-col gap-1">
                       <span className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                        {monitor.name || new URL(monitor.url).hostname}
+                        {monitor.name || (() => { try { return new URL(monitor.url).hostname; } catch { return monitor.url; } })()}
                       </span>
                       <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                         <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Checked {monitor.lastCheckedAt ? new Date(monitor.lastCheckedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Never'}</span>

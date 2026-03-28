@@ -145,11 +145,7 @@ const MonitorDetails: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex gap-2">
-            <button className="btn-primary bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100">
-              <Activity className="w-4 h-4" /> Run Manual Check
-            </button>
-          </div>
+          {/* Manual check button reserved for a future feature */}
         </div>
       </div>
 
