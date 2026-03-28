@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode for Tailwind v4 (toggling .dark on <html>) */
+@variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* ── Warm Cream & Charcoal – Easy on the eyes ── */
   --color-primary: #4a4a4a;

@@ -131,12 +131,12 @@ const executeCheck = async (monitor: Monitor) => {
     logger.warn(`Check failed for ${monitor.url}: ${errorMsg}`);
   }
 
-  // Strike Policy & Persistence
+  // Status Persistence — any non-2xx response or error immediately marks DOWN
   const previousStatus = monitor.status;
   const isCurrentlyUp = status === 'UP';
   const currentFailureCount = (monitor as any).failureCount ?? 0;
-  let nextFailureCount = isCurrentlyUp ? 0 : currentFailureCount + 1;
-  const effectiveStatus = (nextFailureCount >= 3) ? 'DOWN' : (isCurrentlyUp ? 'UP' : previousStatus);
+  const nextFailureCount = isCurrentlyUp ? 0 : currentFailureCount + 1;
+  const effectiveStatus = isCurrentlyUp ? 'UP' : 'DOWN';
   const statusChanged = previousStatus !== effectiveStatus;
 
   try {
