@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -13,28 +13,68 @@ model User {
   email          String          @unique
   password       String
   createdAt      DateTime        @default(now())
+  sources        PaymentSource[]
   failedPayments FailedPayment[]
 }
 
-model FailedPayment {
-  id            String     @id @default(uuid())
+model PaymentSource {
+  id            String         @id @default(uuid())
   userId        String
-  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paymentId     String     @unique
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider      String         @default("razorpay")
+  name          String?
+  keyId         String
+  keySecret     String
+  webhookSecret String
+  createdAt     DateTime       @default(now())
+  events        PaymentEvent[]
+}
+
+model PaymentEvent {
+  id            String        @id @default(uuid())
+  sourceId      String
+  source        PaymentSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  razorpayEventId String     @unique
+  eventType     String
+  paymentId     String
+  amount        Int
+  email         String
+  contact       String?
+  status        String
+  rawData       String
+  createdAt     DateTime      @default(now())
+  failedPayment FailedPayment?
+}
+
+model FailedPayment {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId       String?       @unique
+  event         PaymentEvent? @relation(fields: [eventId], references: [id])
+  paymentId     String        @unique
   orderId       String?
   amount        Int
-  currency      String     @default("INR")
+  currency      String        @default("INR")
   customerEmail String
   customerPhone String?
   customerName  String?
-  status        String     @default("pending")
-  retryCount    Int        @default(0)
+  status        String        @default("pending")
+  retryCount    Int           @default(0)
   lastRetryAt   DateTime?
   recoveredAt   DateTime?
-  paymentLink   String?
   metadata      String?
-  createdAt     DateTime   @default(now())
+  createdAt     DateTime      @default(now())
   reminders     Reminder[]
+  recoveryLinks RecoveryLink[]
+}
+
+model RecoveryLink {
+  id              String        @id @default(uuid())
+  failedPaymentId String
+  failedPayment   FailedPayment @relation(fields: [failedPaymentId], references: [id], onDelete: Cascade)
+  url             String
+  createdAt       DateTime      @default(now())
 }
 
 model Reminder {

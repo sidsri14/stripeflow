@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.routes.js';
 import webhookRoutes from './routes/webhook.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import sourceRoutes from './routes/source.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { rateLimit } from 'express-rate-limit';
 import { successResponse } from './utils/apiResponse.js';
@@ -27,15 +28,6 @@ if (!process.env.JWT_SECRET) {
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is required.');
 }
-if (!process.env.RAZORPAY_KEY_ID) {
-  throw new Error('RAZORPAY_KEY_ID is required.');
-}
-if (!process.env.RAZORPAY_KEY_SECRET) {
-  throw new Error('RAZORPAY_KEY_SECRET is required.');
-}
-if (!process.env.RAZORPAY_WEBHOOK_SECRET) {
-  throw new Error('RAZORPAY_WEBHOOK_SECRET is required.');
-}
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -47,7 +39,7 @@ app.use(cookieParser(process.env.COOKIE_SECRET || process.env.JWT_SECRET));
 // so it receives the raw body buffer for HMAC-SHA256 signature verification.
 // It is also registered before CSRF middleware — correct, since Razorpay
 // authenticates via HMAC signature, not CSRF tokens.
-app.use('/api/webhook/razorpay', webhookRoutes);
+app.use('/api/webhooks/razorpay', webhookRoutes);
 
 // Global JSON body parser (after webhook route)
 app.use(express.json({ limit: '10kb' }));
@@ -102,6 +94,7 @@ app.use('/api', doubleCsrfProtection);
 app.use('/api/auth', authRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/sources', sourceRoutes);
 
 app.get('/health', (_req, res) => {
   successResponse(res, { status: 'ok', service: 'RecoverPay' });

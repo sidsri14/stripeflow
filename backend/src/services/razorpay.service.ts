@@ -1,21 +1,15 @@
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
-
 export class RazorpayService {
-  static verifyWebhookSignature(rawBody: string, signature: string): boolean {
+  static verifyWebhookSignature(rawBody: string, signature: string, secret: string): boolean {
     const expected = crypto
-      .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET!)
+      .createHmac('sha256', secret)
       .update(rawBody)
       .digest('hex');
     try {
       const expectedBuf = Buffer.from(expected, 'hex');
       const receivedBuf = Buffer.from(signature, 'hex');
-      // timingSafeEqual throws if lengths differ — guard against malformed signatures
       if (expectedBuf.length !== receivedBuf.length) return false;
       return crypto.timingSafeEqual(expectedBuf, receivedBuf);
     } catch {
@@ -23,15 +17,20 @@ export class RazorpayService {
     }
   }
 
-  static async createPaymentLink(params: {
-    amount: number;
-    currency: string;
-    customerName?: string;
-    customerEmail: string;
-    customerPhone?: string;
-    description: string;
-    referenceId: string;
-  }): Promise<string> {
+  static async createPaymentLink(
+    keyId: string,
+    keySecret: string,
+    params: {
+      amount: number;
+      currency: string;
+      customerName?: string;
+      customerEmail: string;
+      customerPhone?: string;
+      description: string;
+      referenceId: string;
+    }
+  ): Promise<string> {
+    const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
     const response = await razorpay.paymentLink.create({
       amount: params.amount,
       currency: params.currency,

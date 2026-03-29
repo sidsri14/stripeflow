@@ -7,7 +7,7 @@ import { sendPaymentFailedEmail, sendPaymentReminderEmail } from './services/ema
 import { AuditService } from './services/audit.service.js';
 
 const RECOVERY_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-const EXPIRY_DAYS = 7;
+const ABANDON_AFTER_DAYS = 7;
 
 const logger = pino({
   transport: { target: 'pino-pretty', options: { colorize: true } },
@@ -22,29 +22,49 @@ const processRecoveryQueue = async (): Promise<void> => {
   logger.info('Recovery worker tick started');
 
   try {
-    // 1. Mark payments older than EXPIRY_DAYS as expired
-    const expiryThreshold = new Date(Date.now() - EXPIRY_DAYS * 24 * 60 * 60 * 1000);
-    const expired = await prisma.failedPayment.findMany({
-      where: { status: 'pending', createdAt: { lt: expiryThreshold } },
+    // 1. Mark payments older than ABANDON_AFTER_DAYS with no more retries as abandoned
+    const abandonThreshold = new Date(Date.now() - ABANDON_AFTER_DAYS * 24 * 60 * 60 * 1000);
+    const toAbandon = await prisma.failedPayment.findMany({
+      where: {
+        status: { in: ['pending', 'retrying'] },
+        OR: [
+          { createdAt: { lt: abandonThreshold } },
+          { retryCount: { gte: 3 } },
+        ],
+      },
     });
-    for (const p of expired) {
-      await PaymentService.markExpired(p.id);
-      logger.info({ paymentId: p.paymentId }, 'Payment expired');
+    for (const p of toAbandon) {
+      await PaymentService.markAbandoned(p.id);
+      logger.info({ paymentId: p.paymentId }, 'Payment abandoned');
     }
-    if (expired.length > 0) {
-      logger.info(`Marked ${expired.length} payment(s) as expired`);
+    if (toAbandon.length > 0) {
+      logger.info(`Marked ${toAbandon.length} payment(s) as abandoned`);
     }
 
-    // 2. Process retry queue
+    // 2. Process retry queue (pending + retrying with retryCount < 3)
     const pending = await PaymentService.getPendingForRetry();
     logger.info(`${pending.length} payment(s) ready for retry`);
 
     for (const payment of pending) {
       try {
-        // Generate payment link if not already set
-        let paymentLink = payment.paymentLink;
+        // Get source to obtain Razorpay credentials
+        const event = await prisma.paymentEvent.findUnique({
+          where: { id: payment.eventId ?? '' },
+          include: { source: true },
+        });
+
+        let keyId = process.env.RAZORPAY_KEY_ID!;
+        let keySecret = process.env.RAZORPAY_KEY_SECRET!;
+
+        if (event?.source) {
+          keyId = event.source.keyId;
+          keySecret = event.source.keySecret;
+        }
+
+        // Use existing recovery link if available, otherwise create one
+        let paymentLink = payment.recoveryLinks[0]?.url;
         if (!paymentLink) {
-          paymentLink = await RazorpayService.createPaymentLink({
+          paymentLink = await RazorpayService.createPaymentLink(keyId, keySecret, {
             amount: payment.amount,
             currency: payment.currency,
             customerName: payment.customerName ?? undefined,
@@ -53,10 +73,11 @@ const processRecoveryQueue = async (): Promise<void> => {
             description: `Retry payment${payment.orderId ? ` for order ${payment.orderId}` : ''}`,
             referenceId: payment.id,
           });
+          await PaymentService.createRecoveryLink(payment.id, paymentLink);
         }
 
-        // Send correct email based on retry sequence
-        const dayOffset = payment.retryCount === 0 ? 0 : payment.retryCount === 1 ? 2 : 5;
+        // Send appropriate email based on retry sequence
+        const dayOffset = payment.retryCount === 0 ? 0 : payment.retryCount === 1 ? 1 : 3;
 
         if (payment.retryCount === 0) {
           await sendPaymentFailedEmail(payment.customerEmail, {
@@ -78,7 +99,7 @@ const processRecoveryQueue = async (): Promise<void> => {
         }
 
         await PaymentService.recordReminder(payment.id, dayOffset, 'email');
-        await PaymentService.incrementRetry(payment.id, paymentLink);
+        await PaymentService.incrementRetry(payment.id);
         await AuditService.log(
           payment.userId,
           'PAYMENT_REMINDER_SENT',
@@ -112,5 +133,5 @@ const shutdown = async (signal: string): Promise<void> => {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-logger.info('RecoverPay Worker v1.0 — started');
+logger.info('RecoverPay Worker v2.0 — started');
 processRecoveryQueue();

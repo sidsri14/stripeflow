@@ -20,6 +20,12 @@ interface Reminder {
   status: string;
 }
 
+interface RecoveryLink {
+  id: string;
+  url: string;
+  createdAt: string;
+}
+
 interface FailedPayment {
   id: string;
   paymentId: string;
@@ -33,7 +39,7 @@ interface FailedPayment {
   retryCount: number;
   lastRetryAt?: string;
   recoveredAt?: string;
-  paymentLink?: string;
+  recoveryLinks: RecoveryLink[];
   metadata?: string;
   createdAt: string;
   reminders: Reminder[];
@@ -50,9 +56,9 @@ const daysSince = (dateStr: string) =>
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const styles: Record<string, string> = {
     pending:   'bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800',
+    retrying:  'bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-800',
     recovered: 'bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800',
-    expired:   'bg-stone-500/10 text-stone-500 border-stone-200 dark:border-stone-700',
-    cancelled: 'bg-red-500/10 text-red-500 border-red-200 dark:border-red-800',
+    abandoned: 'bg-stone-500/10 text-stone-500 border-stone-200 dark:border-stone-700',
   };
   return (
     <span className={cn('px-3 py-1 rounded-full text-xs font-bold uppercase border', styles[status] || styles.pending)}>
@@ -139,29 +145,33 @@ const PaymentDetails: React.FC = () => {
         <MetricCard label="Status" value={<StatusBadge status={payment.status} />} />
       </div>
 
-      {/* ── Payment Link */}
-      {payment.paymentLink && (
+      {/* ── Recovery Links */}
+      {payment.recoveryLinks.length > 0 && (
         <div className="border border-warm-border dark:border-stone-700 rounded-xl p-6 bg-white dark:bg-stone-800 shadow-soft space-y-3">
-          <h2 className="text-sm font-semibold text-stone-600 dark:text-stone-300 uppercase tracking-wider">Payment Link</h2>
-          <div className="flex items-center gap-3 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg p-3">
-            <span className="flex-1 text-sm font-mono text-stone-600 dark:text-stone-300 truncate">{payment.paymentLink}</span>
-            <button
-              onClick={() => copyToClipboard(payment.paymentLink!)}
-              className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded transition-colors text-stone-400 hover:text-stone-700"
-              title="Copy link"
-            >
-              <Copy className="w-4 h-4" />
-            </button>
-            <a
-              href={payment.paymentLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded transition-colors text-stone-400 hover:text-blue-600"
-              title="Open link"
-            >
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
+          <h2 className="text-sm font-semibold text-stone-600 dark:text-stone-300 uppercase tracking-wider">
+            Recovery Link{payment.recoveryLinks.length > 1 ? 's' : ''}
+          </h2>
+          {payment.recoveryLinks.map((link) => (
+            <div key={link.id} className="flex items-center gap-3 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg p-3">
+              <span className="flex-1 text-sm font-mono text-stone-600 dark:text-stone-300 truncate">{link.url}</span>
+              <button
+                onClick={() => copyToClipboard(link.url)}
+                className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded transition-colors text-stone-400 hover:text-stone-700"
+                title="Copy link"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1.5 hover:bg-stone-200 dark:hover:bg-stone-700 rounded transition-colors text-stone-400 hover:text-blue-600"
+                title="Open link"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          ))}
         </div>
       )}
 

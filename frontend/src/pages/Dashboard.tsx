@@ -14,6 +14,12 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+interface RecoveryLink {
+  id: string;
+  url: string;
+  createdAt: string;
+}
+
 interface FailedPayment {
   id: string;
   paymentId: string;
@@ -23,11 +29,11 @@ interface FailedPayment {
   customerEmail: string;
   customerPhone?: string;
   customerName?: string;
-  status: 'pending' | 'recovered' | 'expired' | 'cancelled';
+  status: 'pending' | 'retrying' | 'recovered' | 'abandoned';
   retryCount: number;
   lastRetryAt?: string;
   recoveredAt?: string;
-  paymentLink?: string;
+  recoveryLinks: RecoveryLink[];
   createdAt: string;
 }
 
@@ -75,9 +81,9 @@ const SkeletonRow = () => (
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const styles: Record<string, string> = {
     pending:   'bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800',
+    retrying:  'bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-800',
     recovered: 'bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800',
-    expired:   'bg-stone-500/10 text-stone-500 border-stone-200 dark:border-stone-700',
-    cancelled: 'bg-red-500/10 text-red-500 border-red-200 dark:border-red-800',
+    abandoned: 'bg-stone-500/10 text-stone-500 border-stone-200 dark:border-stone-700',
   };
   return (
     <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border', styles[status] || styles.pending)}>
@@ -90,7 +96,7 @@ const Dashboard: React.FC = () => {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'pending' | 'recovered' | 'expired'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'pending' | 'retrying' | 'recovered' | 'abandoned'>('ALL');
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -136,13 +142,13 @@ const Dashboard: React.FC = () => {
           p.customerEmail.toLowerCase().includes(q) ||
           (p.customerName || '').toLowerCase().includes(q) ||
           p.paymentId.toLowerCase().includes(q);
-        const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
+        const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter as string;
         return matchesSearch && matchesStatus;
       })
       .sort((a, b) => {
         let cmp = 0;
         if (sortKey === 'status') {
-          const order: Record<string, number> = { pending: 0, expired: 1, recovered: 2, cancelled: 3 };
+          const order: Record<string, number> = { pending: 0, retrying: 1, recovered: 2, abandoned: 3 };
           cmp = (order[a.status] ?? 4) - (order[b.status] ?? 4);
         } else if (sortKey === 'amount') {
           cmp = a.amount - b.amount;
@@ -244,7 +250,7 @@ const Dashboard: React.FC = () => {
 
         <div className="flex flex-wrap gap-2 items-center">
           <div className="bg-white dark:bg-stone-800 border border-warm-border dark:border-stone-700 p-1 rounded-xl flex items-center" role="group" aria-label="Filter by status">
-            {(['ALL', 'pending', 'recovered', 'expired'] as const).map(s => (
+            {(['ALL', 'pending', 'retrying', 'recovered', 'abandoned'] as const).map(s => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
@@ -332,9 +338,9 @@ const Dashboard: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      {payment.paymentLink && (
+                      {payment.recoveryLinks[0] && (
                         <a
-                          href={payment.paymentLink}
+                          href={payment.recoveryLinks[0].url}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={e => e.stopPropagation()}
@@ -344,7 +350,7 @@ const Dashboard: React.FC = () => {
                           <ExternalLink className="w-4 h-4" />
                         </a>
                       )}
-                      {payment.status === 'pending' && (
+                      {['pending', 'retrying'].includes(payment.status) && (
                         <button
                           onClick={e => { e.stopPropagation(); retryMutation.mutate(payment.id); }}
                           disabled={retryMutation.isPending}

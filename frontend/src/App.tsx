@@ -5,7 +5,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import PaymentDetails from './pages/PaymentDetails';
-import { Moon, Sun, LogOut, TrendingUp } from 'lucide-react';
+import Sources from './pages/Sources';
+import { Moon, Sun, LogOut, TrendingUp, Link2 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { api } from './api';
 
@@ -58,6 +59,13 @@ const Layout: React.FC<React.PropsWithChildren<LayoutProps>> = ({ children, user
         </div>
 
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/sources')}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 font-medium text-sm border border-transparent hover:border-warm-border dark:hover:border-stone-700"
+          >
+            <Link2 className="w-4 h-4" /> Sources
+          </button>
+
           <div className="hidden sm:flex flex-col items-end">
             <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider">Signed in as</span>
             <span className="text-sm font-semibold text-stone-700 dark:text-stone-200">{user.email}</span>
@@ -154,6 +162,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/payments/:id" element={<PaymentDetails />} />
+                <Route path="/sources" element={<Sources />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </Layout>

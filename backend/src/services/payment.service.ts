@@ -12,6 +12,7 @@ export class PaymentService {
       customerPhone?: string;
       customerName?: string;
       metadata?: string;
+      eventId?: string;
     }
   ) {
     return prisma.failedPayment.create({
@@ -25,6 +26,7 @@ export class PaymentService {
         customerPhone: data.customerPhone,
         customerName: data.customerName,
         metadata: data.metadata,
+        eventId: data.eventId,
       },
     });
   }
@@ -46,14 +48,20 @@ export class PaymentService {
         }),
       },
       orderBy: { createdAt: 'desc' },
-      include: { reminders: { orderBy: { sentAt: 'asc' } } },
+      include: {
+        reminders: { orderBy: { sentAt: 'asc' } },
+        recoveryLinks: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
     });
   }
 
   static async getPaymentById(userId: string, id: string) {
     const payment = await prisma.failedPayment.findFirst({
       where: { id, userId },
-      include: { reminders: { orderBy: { sentAt: 'asc' } } },
+      include: {
+        reminders: { orderBy: { sentAt: 'asc' } },
+        recoveryLinks: { orderBy: { createdAt: 'desc' } },
+      },
     });
     if (!payment) {
       const err = new Error('Payment not found') as any;
@@ -92,20 +100,25 @@ export class PaymentService {
     });
   }
 
+  // Status: pending → retrying → abandoned
+  // Retry timing: 0 = immediately, 1 = 24h, 2 = 72h
   static async getPendingForRetry() {
     const now = new Date();
-    const ago48h = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-    const ago120h = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+    const ago24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const ago72h = new Date(now.getTime() - 72 * 60 * 60 * 1000);
 
     return prisma.failedPayment.findMany({
       where: {
-        status: 'pending',
+        status: { in: ['pending', 'retrying'] },
         retryCount: { lt: 3 },
         OR: [
           { retryCount: 0, lastRetryAt: null },
-          { retryCount: 1, lastRetryAt: { lte: ago48h } },
-          { retryCount: 2, lastRetryAt: { lte: ago120h } },
+          { retryCount: 1, lastRetryAt: { lte: ago24h } },
+          { retryCount: 2, lastRetryAt: { lte: ago72h } },
         ],
+      },
+      include: {
+        recoveryLinks: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
     });
   }
@@ -116,21 +129,33 @@ export class PaymentService {
     });
   }
 
-  static async incrementRetry(failedPaymentId: string, paymentLink: string) {
+  static async createRecoveryLink(failedPaymentId: string, url: string) {
+    return prisma.recoveryLink.create({
+      data: { failedPaymentId, url },
+    });
+  }
+
+  static async incrementRetry(failedPaymentId: string) {
+    const payment = await prisma.failedPayment.findUnique({
+      where: { id: failedPaymentId },
+      select: { retryCount: true },
+    });
+    const newCount = (payment?.retryCount ?? 0) + 1;
     await prisma.failedPayment.update({
       where: { id: failedPaymentId },
       data: {
         retryCount: { increment: 1 },
         lastRetryAt: new Date(),
-        paymentLink,
+        // Move to retrying after first attempt
+        status: newCount >= 1 ? 'retrying' : 'pending',
       },
     });
   }
 
-  static async markExpired(failedPaymentId: string) {
+  static async markAbandoned(failedPaymentId: string) {
     await prisma.failedPayment.update({
       where: { id: failedPaymentId },
-      data: { status: 'expired' },
+      data: { status: 'abandoned' },
     });
   }
 
@@ -143,15 +168,11 @@ export class PaymentService {
       err.status = 404;
       throw err;
     }
-    if (payment.status !== 'pending') {
-      const err = new Error('Payment is not in pending state') as any;
+    if (!['pending', 'retrying'].includes(payment.status)) {
+      const err = new Error('Payment cannot be retried in its current state') as any;
       err.status = 400;
       throw err;
     }
-    // Reset timing so worker picks it up on next tick.
-    // Use epoch (new Date(0)) rather than null: the null path in getPendingForRetry
-    // only matches retryCount=0. For retryCount>0 the query uses `lte: agoXXh`, so
-    // a past epoch date guarantees immediate pickup regardless of retry count.
     await prisma.failedPayment.update({
       where: { id: failedPaymentId },
       data: { lastRetryAt: new Date(0) },
