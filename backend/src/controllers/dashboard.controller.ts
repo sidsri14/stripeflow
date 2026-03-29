@@ -11,3 +11,12 @@ export const getDashboardStats = async (req: AuthRequest, res: Response, next: N
     errorResponse(res, error.message, 500);
   }
 };
+
+export const getMetrics = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const metrics = await PaymentService.getMetrics(req.userId!);
+    successResponse(res, metrics);
+  } catch (error: any) {
+    errorResponse(res, error.message, 500);
+  }
+};

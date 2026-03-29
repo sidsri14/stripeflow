@@ -10,6 +10,8 @@ import webhookRoutes from './routes/webhook.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import sourceRoutes from './routes/source.routes.js';
+import demoRoutes from './routes/demo.routes.js';
+import billingRoutes from './routes/billing.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { rateLimit } from 'express-rate-limit';
 import { successResponse } from './utils/apiResponse.js';
@@ -95,6 +97,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/sources', sourceRoutes);
+app.use('/api/demo', demoRoutes);
+app.use('/api/billing', billingRoutes);
 
 app.get('/health', (_req, res) => {
   successResponse(res, { status: 'ok', service: 'RecoverPay' });

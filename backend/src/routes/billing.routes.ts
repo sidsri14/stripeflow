@@ -1,14 +1,13 @@
 import { Router } from 'express';
-import { getDashboardStats, getMetrics } from '../controllers/dashboard.controller.js';
+import { getBillingStatus, upgradeToPaid } from '../controllers/billing.controller.js';
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { apiLimiter } from '../middleware/rateLimit.middleware.js';
 
 const router = Router();
 
-router.use(requireAuth);
-router.use(apiLimiter);
+router.use(requireAuth, apiLimiter);
 
-router.get('/stats', getDashboardStats);
-router.get('/metrics', getMetrics);
+router.get('/status', getBillingStatus);
+router.post('/upgrade', upgradeToPaid);
 
 export default router;

@@ -13,6 +13,7 @@ import { api } from './api';
 type AuthUser = {
   id: string;
   email: string;
+  plan: 'free' | 'paid';
   createdAt: string;
 };
 

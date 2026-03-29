@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { connectSource, getSources, deleteSource } from '../controllers/source.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
+import { requireAuth } from '../middleware/auth.middleware.js';
 import { rateLimit } from 'express-rate-limit';
 
 const router = Router();
@@ -12,7 +12,7 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.use(authenticate, apiLimiter);
+router.use(requireAuth, apiLimiter);
 
 router.post('/connect', connectSource);
 router.get('/', getSources);

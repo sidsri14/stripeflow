@@ -55,7 +55,7 @@ export const getMe = async (req: any, res: Response, next: NextFunction): Promis
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, email: true, createdAt: true },
+      select: { id: true, email: true, plan: true, createdAt: true },
     });
 
     if (!user) {

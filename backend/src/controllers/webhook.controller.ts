@@ -6,7 +6,7 @@ import { AuditService } from '../services/audit.service.js';
 import { prisma } from '../utils/prisma.js';
 
 export const handleRazorpayWebhook = async (req: Request, res: Response): Promise<void> => {
-  const { sourceId } = req.params;
+  const sourceId = req.params['sourceId'] as string;
   const signature = req.headers['x-razorpay-signature'] as string | undefined;
 
   if (!signature) {

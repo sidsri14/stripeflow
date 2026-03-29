@@ -12,6 +12,7 @@ model User {
   id             String          @id @default(uuid())
   email          String          @unique
   password       String
+  plan           String          @default("free") // "free" | "paid"
   createdAt      DateTime        @default(now())
   sources        PaymentSource[]
   failedPayments FailedPayment[]
@@ -62,7 +63,9 @@ model FailedPayment {
   status        String        @default("pending")
   retryCount    Int           @default(0)
   lastRetryAt   DateTime?
+  nextRetryAt   DateTime?
   recoveredAt   DateTime?
+  recoveredVia  String?   // "link" | "external"
   metadata      String?
   createdAt     DateTime      @default(now())
   reminders     Reminder[]

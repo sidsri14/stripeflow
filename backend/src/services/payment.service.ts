@@ -27,6 +27,7 @@ export class PaymentService {
         customerName: data.customerName,
         metadata: data.metadata,
         eventId: data.eventId,
+        nextRetryAt: new Date(), // process immediately on next worker tick
       },
     });
   }
@@ -74,8 +75,12 @@ export class PaymentService {
   static async getDashboardStats(userId: string) {
     const all = await prisma.failedPayment.findMany({
       where: { userId },
-      select: { status: true, amount: true },
+      select: { status: true, amount: true, recoveredAt: true },
     });
+
+    const now = Date.now();
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
 
     const totalFailed = all.length;
     const recovered = all.filter((p) => p.status === 'recovered');
@@ -84,38 +89,41 @@ export class PaymentService {
     const totalRecoveredAmount = recovered.reduce((sum, p) => sum + p.amount, 0);
     const recoveryRate = totalFailed > 0 ? (totalRecovered / totalFailed) * 100 : 0;
 
+    const recoveredThisWeek = recovered
+      .filter(p => p.recoveredAt && new Date(p.recoveredAt).getTime() >= weekAgo)
+      .reduce((sum, p) => sum + p.amount, 0);
+    const recoveredThisMonth = recovered
+      .filter(p => p.recoveredAt && new Date(p.recoveredAt).getTime() >= monthAgo)
+      .reduce((sum, p) => sum + p.amount, 0);
+
     return {
       totalFailed,
       totalRecovered,
       recoveryRate: Math.round(recoveryRate * 10) / 10,
       totalFailedAmount,
       totalRecoveredAmount,
+      recoveredThisWeek,
+      recoveredThisMonth,
     };
   }
 
-  static async markRecovered(failedPaymentId: string) {
+  static async markRecovered(failedPaymentId: string, via: 'link' | 'external' = 'link') {
     await prisma.failedPayment.update({
       where: { id: failedPaymentId },
-      data: { status: 'recovered', recoveredAt: new Date() },
+      data: { status: 'recovered', recoveredAt: new Date(), recoveredVia: via },
     });
   }
 
   // Status: pending → retrying → abandoned
-  // Retry timing: 0 = immediately, 1 = 24h, 2 = 72h
+  // Retry timing controlled by nextRetryAt field
+  // Only paid-plan users get auto-recovery. Free plan = tracking only.
   static async getPendingForRetry() {
-    const now = new Date();
-    const ago24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const ago72h = new Date(now.getTime() - 72 * 60 * 60 * 1000);
-
     return prisma.failedPayment.findMany({
       where: {
         status: { in: ['pending', 'retrying'] },
         retryCount: { lt: 3 },
-        OR: [
-          { retryCount: 0, lastRetryAt: null },
-          { retryCount: 1, lastRetryAt: { lte: ago24h } },
-          { retryCount: 2, lastRetryAt: { lte: ago72h } },
-        ],
+        nextRetryAt: { lte: new Date() },
+        user: { plan: 'paid' },
       },
       include: {
         recoveryLinks: { orderBy: { createdAt: 'desc' }, take: 1 },
@@ -135,21 +143,60 @@ export class PaymentService {
     });
   }
 
+  // Retry delay schedule: after retry N, wait X ms before retry N+1
+  private static readonly RETRY_DELAYS_MS = [
+    24 * 60 * 60 * 1000,  // after retry 0 → wait 24h
+    72 * 60 * 60 * 1000,  // after retry 1 → wait 72h
+  ];
+
   static async incrementRetry(failedPaymentId: string) {
     const payment = await prisma.failedPayment.findUnique({
       where: { id: failedPaymentId },
       select: { retryCount: true },
     });
-    const newCount = (payment?.retryCount ?? 0) + 1;
+    const currentCount = payment?.retryCount ?? 0;
+    const newCount = currentCount + 1;
+    const delayMs = PaymentService.RETRY_DELAYS_MS[currentCount];
+    const nextRetryAt = delayMs != null ? new Date(Date.now() + delayMs) : null;
+
     await prisma.failedPayment.update({
       where: { id: failedPaymentId },
       data: {
-        retryCount: { increment: 1 },
+        retryCount: newCount,
         lastRetryAt: new Date(),
-        // Move to retrying after first attempt
-        status: newCount >= 1 ? 'retrying' : 'pending',
+        nextRetryAt,
+        status: 'retrying',
       },
     });
+  }
+
+  static async getMetrics(userId: string) {
+    const all = await prisma.failedPayment.findMany({
+      where: { userId },
+      select: { status: true, amount: true, recoveredAt: true, recoveredVia: true },
+    });
+    const failedAmount = all.reduce((sum, p) => sum + p.amount, 0);
+    const recovered = all.filter(p => p.status === 'recovered');
+    const recoveredAmount = recovered.reduce((sum, p) => sum + p.amount, 0);
+    const recoveryRate = failedAmount > 0 ? recoveredAmount / failedAmount : 0;
+
+    const now = Date.now();
+    const recoveredThisWeek = recovered
+      .filter(p => p.recoveredAt && new Date(p.recoveredAt).getTime() >= now - 7 * 24 * 60 * 60 * 1000)
+      .reduce((sum, p) => sum + p.amount, 0);
+    const recoveredThisMonth = recovered
+      .filter(p => p.recoveredAt && new Date(p.recoveredAt).getTime() >= now - 30 * 24 * 60 * 60 * 1000)
+      .reduce((sum, p) => sum + p.amount, 0);
+    const recoveredViaLink = recovered.filter(p => p.recoveredVia === 'link').reduce((sum, p) => sum + p.amount, 0);
+
+    return {
+      failedAmount,
+      recoveredAmount,
+      recoveryRate: Math.round(recoveryRate * 1000) / 1000,
+      recoveredThisWeek,
+      recoveredThisMonth,
+      recoveredViaLink,
+    };
   }
 
   static async markAbandoned(failedPaymentId: string) {
@@ -175,7 +222,7 @@ export class PaymentService {
     }
     await prisma.failedPayment.update({
       where: { id: failedPaymentId },
-      data: { lastRetryAt: new Date(0) },
+      data: { nextRetryAt: new Date() }, // schedule for immediate processing
     });
   }
 }

@@ -36,7 +36,7 @@ export const getSources = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const deleteSource = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await SourceService.deleteSource(req.userId!, req.params.id);
+    await SourceService.deleteSource(req.userId!, req.params['id'] as string);
     successResponse(res, { deleted: true });
   } catch (error: any) {
     next(error);
