@@ -18,11 +18,4 @@ export class AuditService {
     }
   }
 
-  static async getLogs(userId: string, limit = 50) {
-    return prisma.auditLog.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
-  }
 }

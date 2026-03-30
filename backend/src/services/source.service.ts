@@ -47,26 +47,6 @@ export class SourceService {
     });
   }
 
-  static async getSourceById(userId: string, sourceId: string) {
-    const source = await prisma.paymentSource.findFirst({
-      where: { id: sourceId, userId },
-      select: {
-        id: true,
-        userId: true,
-        provider: true,
-        name: true,
-        keyId: true,
-        createdAt: true,
-      },
-    });
-    if (!source) {
-      const err = new Error('Source not found') as any;
-      err.status = 404;
-      throw err;
-    }
-    return source;
-  }
-
   static async deleteSource(userId: string, sourceId: string) {
     const source = await prisma.paymentSource.findFirst({
       where: { id: sourceId, userId },
