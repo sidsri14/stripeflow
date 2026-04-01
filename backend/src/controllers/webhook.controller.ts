@@ -18,7 +18,7 @@ export const handleRazorpayWebhook = async (req: Request, res: Response): Promis
   }
 
   // Look up the PaymentSource to get its webhookSecret
-  const source = await SourceService.getSourceForWebhook(sourceId);
+  const source = await SourceService.getSourceWithSecrets(sourceId);
   if (!source) {
     res.status(404).json({ error: 'Unknown source' });
     return;
@@ -40,28 +40,45 @@ export const handleRazorpayWebhook = async (req: Request, res: Response): Promis
     return;
   }
 
-  // Acknowledge immediately — Razorpay requires a fast 200 response.
-  // Process in a detached async context so the response is not delayed.
-  res.status(200).json({ received: true });
-
-  void (async () => {
-    try {
-      if (event.event === 'payment.failed') {
-        await handlePaymentFailed(source.id, source.userId, event);
-      } else if (event.event === 'payment.captured') {
-        await handlePaymentCaptured(source.userId, event.payload?.payment?.entity);
-      } else if (event.event === 'refund.created' || event.event === 'payment.refunded') {
-        await handlePaymentRefunded(source.userId, event.payload?.refund?.entity ?? event.payload?.payment?.entity);
-      }
-    } catch (err) {
-      logger.error({ sourceId, err }, 'Webhook async processing error');
+  try {
+    if (event.event === 'payment.failed') {
+      logger.info({ sourceId, eventId: event.id }, 'Processing payment.failed event');
+      await handlePaymentFailed(source.id, source.userId, event);
+    } else if (event.event === 'payment.captured') {
+      logger.info({ sourceId, eventId: event.id }, 'Processing payment.captured event');
+      await handlePaymentCaptured(source.userId, event.payload?.payment?.entity);
+    } else if (event.event === 'refund.created' || event.event === 'payment.refunded') {
+      await handlePaymentRefunded(source.userId, event.payload?.refund?.entity ?? event.payload?.payment?.entity);
     }
-  })();
+  } catch (err) {
+    logger.error({ sourceId, err, eventId: event.id }, 'Webhook internal processing error — signed event acknowledged with 200 to prevent retries');
+    res.status(200).json({ received: true, error: 'Internal processing error' });
+    return;
+  }
+  
+  res.status(200).json({ received: true });
 };
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const handlePaymentFailed = async (sourceId: string, userId: string, event: any): Promise<void> => {
   const payment = event.payload?.payment?.entity;
-  if (!payment?.id || !payment?.email) return;
+  if (!payment?.id || !payment?.email) {
+    logger.warn({ sourceId, eventId: event.id, paymentId: payment?.id, email: payment?.email }, 'Missing critical fields in payment.failed payload — skipping processing');
+    return;
+  }
+
+  // Validate email format to prevent header injection in outbound emails
+  if (!EMAIL_REGEX.test(String(payment.email))) {
+    logger.warn({ sourceId, paymentId: payment.id, email: payment.email }, 'Invalid email format in webhook payload — skipping');
+    return;
+  }
+
+  // Reject nonsensical amounts to prevent corrupted recovery calculations
+  if (typeof payment.amount !== 'number' || payment.amount <= 0 || payment.amount > 999_999_999) {
+    logger.warn({ sourceId, paymentId: payment.id, amount: payment.amount }, 'Invalid payment amount in webhook payload — skipping');
+    return;
+  }
 
   // Idempotency: skip if this event was already processed.
   // Prefer event.id (Razorpay's own unique event ID). Fall back to a composite
@@ -75,40 +92,55 @@ const handlePaymentFailed = async (sourceId: string, userId: string, event: any)
   const existingEvent = await prisma.paymentEvent.findUnique({
     where: { razorpayEventId },
   });
-  if (existingEvent) return;
+  if (existingEvent) {
+    logger.info({ razorpayEventId }, 'Event already processed — skipping (idempotency)');
+    return;
+  }
 
-  // Store raw event
-  const paymentEvent = await prisma.paymentEvent.create({
-    data: {
-      sourceId,
-      razorpayEventId,
-      eventType: 'payment.failed',
-      paymentId: payment.id,
-      amount: payment.amount,
-      email: payment.email,
-      contact: payment.contact,
-      status: payment.status,
-      rawData: JSON.stringify(payment),
-    },
+  logger.info({ razorpayEventId }, 'Atomically storing raw event and creating FailedPayment');
+  
+  await prisma.$transaction(async (tx) => {
+    // 1. Double check idempotency within transaction (optional but safer)
+    const existingEvent = await tx.paymentEvent.findUnique({ where: { razorpayEventId } });
+    if (existingEvent) return;
+
+    // 2. Store raw event
+    const paymentEvent = await tx.paymentEvent.create({
+      data: {
+        sourceId,
+        razorpayEventId,
+        eventType: 'payment.failed',
+        paymentId: payment.id,
+        amount: payment.amount,
+        email: payment.email,
+        contact: payment.contact ?? null,
+        status: payment.status || 'failed',
+        rawData: JSON.stringify(payment),
+      },
+    });
+
+    // 3. Create FailedPayment
+    const existingPayment = await tx.failedPayment.findUnique({ where: { paymentId: payment.id } });
+    if (!existingPayment) {
+      await tx.failedPayment.create({
+        data: {
+          userId,
+          paymentId: payment.id,
+          orderId: payment.order_id,
+          amount: payment.amount,
+          currency: payment.currency || 'INR',
+          customerEmail: payment.email,
+          customerPhone: payment.contact ?? null,
+          customerName: payment.notes?.name,
+          metadata: JSON.stringify(payment),
+          eventId: paymentEvent.id,
+          nextRetryAt: new Date(),
+        },
+      });
+    }
   });
 
-  // Check if FailedPayment already exists (e.g. from duplicate webhook)
-  const existing = await prisma.failedPayment.findUnique({
-    where: { paymentId: payment.id },
-  });
-  if (existing) return;
-
-  await PaymentService.createFailedPayment(userId, {
-    paymentId: payment.id,
-    orderId: payment.order_id,
-    amount: payment.amount,
-    currency: payment.currency || 'INR',
-    customerEmail: payment.email,
-    customerPhone: payment.contact,
-    customerName: payment.notes?.name,
-    metadata: JSON.stringify(payment),
-    eventId: paymentEvent.id,
-  });
+  logger.info({ paymentId: payment.id }, 'Webhook processed successfully');
 
   await AuditService.log(userId, 'PAYMENT_FAILED_RECEIVED', 'FailedPayment', payment.id, {
     amount: payment.amount,

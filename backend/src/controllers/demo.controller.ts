@@ -6,10 +6,18 @@ import { sendPaymentFailedEmail } from '../services/email.service.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 import { prisma } from '../utils/prisma.js';
 import crypto from 'crypto';
+import pino from 'pino';
 
-const DEMO_AMOUNTS = [49900, 99900, 199900, 299900, 499900]; // ₹499, ₹999, ₹1999, ₹2999, ₹4999
-const DEMO_NAMES = ['Arjun Sharma', 'Priya Patel', 'Rahul Verma', 'Sneha Iyer', 'Vikram Nair'];
-const DEMO_PRODUCTS = ['Pro Plan', 'Business Plan', 'Enterprise Plan', 'Annual Subscription', 'Starter Pack'];
+const logger = pino({ transport: { target: 'pino-pretty', options: { colorize: true } } });
+
+// Combined into objects so indices can never fall out of sync
+const DEMO_PAYMENTS = [
+  { amount: 49900,  name: 'Arjun Sharma', product: 'Pro Plan' },
+  { amount: 99900,  name: 'Priya Patel',  product: 'Business Plan' },
+  { amount: 199900, name: 'Rahul Verma',  product: 'Enterprise Plan' },
+  { amount: 299900, name: 'Sneha Iyer',   product: 'Annual Subscription' },
+  { amount: 499900, name: 'Vikram Nair',  product: 'Starter Pack' },
+];
 
 export const simulateFailure = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -20,21 +28,18 @@ export const simulateFailure = async (req: AuthRequest, res: Response, next: Nex
       return;
     }
 
-    const idx = Math.floor(Math.random() * DEMO_AMOUNTS.length);
-    const amount = DEMO_AMOUNTS[idx] ?? DEMO_AMOUNTS[0]!;
-    const name = DEMO_NAMES[idx] ?? DEMO_NAMES[0]!;
-    const product = DEMO_PRODUCTS[idx] ?? DEMO_PRODUCTS[0]!;
+    const demo = DEMO_PAYMENTS[Math.floor(Math.random() * DEMO_PAYMENTS.length)]!;
     const demoPaymentId = `pay_DEMO_${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
 
     const payment = await PaymentService.createFailedPayment(userId, {
       paymentId: demoPaymentId,
-      amount,
+      amount: demo.amount,
       currency: 'INR',
       customerEmail: user.email,
-      customerName: name,
+      customerName: demo.name,
       metadata: JSON.stringify({
         demo: true,
-        description: product,
+        description: demo.product,
         error_code: 'BAD_REQUEST_ERROR',
         error_description: 'Your payment has been declined.',
       }),
@@ -48,24 +53,23 @@ export const simulateFailure = async (req: AuthRequest, res: Response, next: Nex
         process.env.RAZORPAY_KEY_ID!,
         process.env.RAZORPAY_KEY_SECRET!,
         {
-          amount,
+          amount: demo.amount,
           currency: 'INR',
-          customerName: name,
+          customerName: demo.name,
           customerEmail: user.email,
-          description: `Recovery link for ${product}`,
+          description: `Recovery link for ${demo.product}`,
           referenceId: payment.id,
         }
       );
       await PaymentService.createRecoveryLink(payment.id, paymentLink);
       void sendPaymentFailedEmail(user.email, {
-        customerName: name,
-        amount,
+        customerName: demo.name,
+        amount: demo.amount,
         currency: 'INR',
         paymentLink,
         paymentId: demoPaymentId,
-      }).catch(() => {/* non-fatal */});
-      await PaymentService.recordReminder(payment.id, 0, 'email');
-      await PaymentService.incrementRetry(payment.id);
+      }).catch(err => logger.warn({ err }, 'Demo email failed to send'));
+      await PaymentService.recordReminderAndIncrementRetry(payment.id, 0, 'email');
     } catch {
       // Non-fatal — payment exists, worker will retry on next tick
     }
@@ -73,9 +77,9 @@ export const simulateFailure = async (req: AuthRequest, res: Response, next: Nex
     successResponse(res, {
       id: payment.id,
       paymentId: demoPaymentId,
-      amount,
-      customerName: name,
-      product,
+      amount: demo.amount,
+      customerName: demo.name,
+      product: demo.product,
       paymentLink,
       message: paymentLink
         ? 'Recovery link created — customer emailed instantly.'

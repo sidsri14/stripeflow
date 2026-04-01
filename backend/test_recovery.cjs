@@ -71,6 +71,7 @@ async function runTest() {
             email: EMAIL,
             contact: '+919876543210',
             order_id: 'order_abc_123',
+            status: 'failed',
             notes: { name: 'Test Customer' }
           }
         }
@@ -105,6 +106,7 @@ async function runTest() {
             id: paymentId,
             amount: 150000,
             currency: 'INR',
+            status: 'captured',
             email: EMAIL
           }
         }

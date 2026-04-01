@@ -26,7 +26,7 @@ function createTransport() {
 
 const FROM_ADDRESS = process.env.SMTP_FROM || 'PayRecover <noreply@payrecover.app>';
 
-async function sendMail(to: string, subject: string, text: string): Promise<void> {
+async function sendMail(to: string, subject: string, text: string, html?: string): Promise<void> {
   const transport = createTransport();
 
   if (!transport) {
@@ -37,6 +37,10 @@ async function sendMail(to: string, subject: string, text: string): Promise<void
     console.log(`Subject: ${subject}`);
     console.log('──────────────────────────────────────────────────');
     console.log(text);
+    if (html) {
+      console.log('────────────────── [HTML Content] ────────────────');
+      console.log('(HTML content suppressed for brevity in console)');
+    }
     console.log('══════════════════════════════════════════════════\n');
     return;
   }
@@ -46,8 +50,38 @@ async function sendMail(to: string, subject: string, text: string): Promise<void
     to,
     subject,
     text,
+    html,
   });
 }
+
+// ── Email Layout ─────────────────────────────────────────────────────────────
+
+const getBaseLayout = (content: string, ctaLink?: string, ctaText?: string) => {
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8f8f8; padding: 40px 20px; color: #1a1a1a;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <div style="padding: 40px;">
+          <div style="margin-bottom: 30px;">
+            <span style="font-size: 24px; font-weight: 800; color: #10b981; letter-spacing: -0.5px;">PayRecover</span>
+          </div>
+          <div style="font-size: 16px; line-height: 1.6; color: #4b5563;">
+            ${content}
+          </div>
+          ${ctaLink ? `
+            <div style="margin-top: 32px;">
+              <a href="${ctaLink}" style="display: inline-block; background-color: #10b981; color: #ffffff; padding: 16px 32px; border-radius: 12px; font-weight: 700; text-decoration: none; font-size: 16px; box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);">
+                ${ctaText || 'Complete Payment'}
+              </a>
+            </div>
+          ` : ''}
+        </div>
+        <div style="padding: 20px 40px; background-color: #f9fafb; border-top: 1px solid #f3f4f6; text-align: center;">
+          <p style="font-size: 12px; color: #9ca3af; margin: 0;">Powered by PayRecover · Automated Failed Payment Recovery</p>
+        </div>
+      </div>
+    </div>
+  `;
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -74,21 +108,16 @@ export const sendPaymentFailedEmail = async (
 
   const subject = `Your ${amt} payment didn't go through — complete it here`;
 
-  const text = `${greeting}
+  const text = `${greeting}\n\nYour payment of ${amt} couldn't be processed — but your order is still saved.\n\nComplete it now in under 10 seconds:\n${params.paymentLink}\n\nThis link is valid for 7 days. If you need help, just reply to this email.\n\nRef: ${params.paymentId}\n\n──────────────────────────────────────────────────\nPowered by PayRecover · Automated payment recovery`;
 
-Your payment of ${amt} couldn't be processed — but your order is still saved.
+  const html = getBaseLayout(
+    `<p>Your payment of <strong>${amt}</strong> couldn't be processed, but we've saved your order details.</p>
+     <p>You can complete your payment now in under 10 seconds using the link below. This link is valid for 7 days.</p>`,
+    params.paymentLink,
+    'Complete Payment Now'
+  );
 
-Complete it now in under 10 seconds:
-→ ${params.paymentLink}
-
-This link is valid for 7 days. If you need help, just reply to this email.
-
-Ref: ${params.paymentId}
-
-──────────────────────────────────────────────────
-Powered by PayRecover · Automated payment recovery`;
-
-  await sendMail(to, subject, text);
+  await sendMail(to, subject, text, html);
 };
 
 // ── Email 2+: Follow-up reminders (retryCount = 1, 2) ────────────────────────
@@ -132,14 +161,15 @@ Pick up where you left off:
 
 Your spot is still saved. Takes less than a minute.`;
 
-  const text = `${body}
+  const text = `${body}\n\nLink: ${params.paymentLink}\n\nRef: ${params.paymentId}\n\n──────────────────────────────────────────────────\nPowered by PayRecover · Automated payment recovery`;
 
-Ref: ${params.paymentId}
+  const html = getBaseLayout(
+    `<p>${body.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br/>')}</p>`,
+    params.paymentLink,
+    isFinal ? 'Final Chance: Pay Now' : 'Complete Payment'
+  );
 
-──────────────────────────────────────────────────
-Powered by PayRecover · Automated payment recovery`;
-
-  await sendMail(to, subject, text);
+  await sendMail(to, subject, text, html);
 };
 
 // ── Email 3: Password reset ───────────────────────────────────────────────────

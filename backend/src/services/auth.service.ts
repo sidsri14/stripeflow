@@ -29,6 +29,7 @@ export class AuthService {
         password: hashedPassword,
         emailVerifyToken,
         emailVerifyExpiry,
+        plan: 'free', // explicit — don't rely on schema default
       },
     });
 

@@ -31,8 +31,10 @@ export function decrypt(value: string): string {
   return Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8');
 }
 
-// Returns true if the value looks like an encrypted string (iv:tag:data hex triplet)
+// Returns true if the value looks like an encrypted string (iv:tag:data hex triplet).
+// Guards against empty parts — a corrupted stored value with empty segments would
+// otherwise pass the regex test and produce garbage decryption output.
 function isEncrypted(value: string): boolean {
   const parts = value.split(':');
-  return parts.length === 3 && parts.every(p => /^[0-9a-f]+$/i.test(p));
+  return parts.length === 3 && parts.every(p => p.length > 0 && /^[0-9a-f]+$/i.test(p));
 }

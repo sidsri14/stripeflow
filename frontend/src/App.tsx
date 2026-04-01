@@ -1,21 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import PaymentDetails from './pages/PaymentDetails';
-import Sources from './pages/Sources';
-import { Moon, Sun, LogOut, TrendingUp, Link2 } from 'lucide-react';
+import { Moon, Sun, LogOut, TrendingUp, Link2, Loader2 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { api } from './api';
 
-type AuthUser = {
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const PaymentDetails = lazy(() => import('./pages/PaymentDetails'));
+const Sources = lazy(() => import('./pages/Sources'));
+
+export type AuthUser = {
   id: string;
   email: string;
   plan: 'free' | 'paid';
   createdAt: string;
 };
+
+const PageLoader = () => (
+  <div className="min-h-[60vh] flex items-center justify-center">
+    <Loader2 className="w-8 h-8 text-emerald-500 animate-spin opacity-50" />
+  </div>
+);
 
 const ThemeToggle = () => {
   const [isDark, setIsDark] = useState(() => {
@@ -55,7 +62,7 @@ const Layout: React.FC<React.PropsWithChildren<LayoutProps>> = ({ children, user
             <TrendingUp className="w-5 h-5 text-white" />
           </div>
           <span className="font-bold text-xl tracking-tight text-stone-800 dark:text-stone-100">
-            RecoverPay
+            PayRecover
           </span>
         </div>
 
@@ -94,12 +101,54 @@ const Layout: React.FC<React.PropsWithChildren<LayoutProps>> = ({ children, user
 
     <footer className="p-8 border-t border-warm-border dark:border-stone-800 text-center">
       <p className="text-xs font-medium text-stone-400 tracking-wide">
-        &copy; 2026 RecoverPay
+        &copy; 2026 PayRecover
       </p>
     </footer>
   </div>
   );
 };
+
+// ── Error Boundary
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-6 bg-cream dark:bg-stone-900">
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-black text-stone-800 dark:text-stone-100">Something went wrong.</h2>
+            <p className="text-stone-500 dark:text-stone-400 text-sm">We've encountered an unexpected error.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm"
+            >
+              Reload Dashboard
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function PageTitle() {
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      '/': 'Dashboard | PayRecover',
+      '/login': 'Sign In | PayRecover',
+      '/register': 'Create Account | PayRecover',
+      '/sources': 'Payment Sources | PayRecover',
+    };
+    const path = window.location.pathname;
+    document.title = titles[path] || 'PayRecover | Failed Payment Recovery';
+  }, [window.location.pathname]);
+  return null;
+}
 
 function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -146,31 +195,36 @@ function App() {
   }
 
   return (
-    <Router>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          className: '!bg-white dark:!bg-stone-800 !text-stone-700 dark:!text-stone-200 !border !border-warm-border dark:!border-stone-700 !px-5 !py-3.5 !rounded-xl !font-medium',
-          duration: 4000,
-        }}
-      />
-      <Routes>
-        <Route path="/login" element={user ? <Navigate to="/" /> : <Login onLoginSuccess={setUser} />} />
-        <Route path="/register" element={user ? <Navigate to="/" /> : <Register onRegisterSuccess={setUser} />} />
-        <Route path="/*" element={
-          user ? (
-            <Layout user={user} onLogout={handleLogout}>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/payments/:id" element={<PaymentDetails />} />
-                <Route path="/sources" element={<Sources />} />
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
-            </Layout>
-          ) : <Navigate to="/login" />
-        } />
-      </Routes>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <PageTitle />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            className: '!bg-white dark:!bg-stone-800 !text-stone-700 dark:!text-stone-200 !border !border-warm-border dark:!border-stone-700 !px-5 !py-3.5 !rounded-xl !font-medium',
+            duration: 4000,
+          }}
+        />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/login" element={user ? <Navigate to="/" /> : <Login onLoginSuccess={(u) => setUser(u)} />} />
+            <Route path="/register" element={user ? <Navigate to="/" /> : <Register onRegisterSuccess={(u) => setUser(u)} />} />
+            <Route path="/*" element={
+              user ? (
+                <Layout user={user} onLogout={handleLogout}>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/payments/:id" element={<PaymentDetails />} />
+                    <Route path="/sources" element={<Sources />} />
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                </Layout>
+              ) : <Navigate to="/login" />
+            } />
+          </Routes>
+        </Suspense>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

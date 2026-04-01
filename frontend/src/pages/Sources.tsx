@@ -4,12 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api';
 import toast from 'react-hot-toast';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+
+
 
 interface PaymentSource {
   id: string;
@@ -17,15 +14,9 @@ interface PaymentSource {
   name?: string;
   keyId: string;
   createdAt: string;
+  webhookUrl: string; // server-computed — never construct this client-side
   _count: { events: number };
 }
-
-const getWebhookUrl = (sourceId: string) => {
-  const base = window.location.origin.includes('localhost')
-    ? `${window.location.protocol}//${window.location.hostname}:3000`
-    : window.location.origin;
-  return `${base}/api/webhooks/razorpay/${sourceId}`;
-};
 
 const ConnectForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const queryClient = useQueryClient();
@@ -157,8 +148,8 @@ const Sources: React.FC = () => {
     onError: () => toast.error('Failed to remove source'),
   });
 
-  const copyWebhookUrl = (sourceId: string) => {
-    navigator.clipboard.writeText(getWebhookUrl(sourceId));
+  const copyWebhookUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
     toast.success('Webhook URL copied');
   };
 
@@ -208,9 +199,18 @@ const Sources: React.FC = () => {
 
       {/* Sources list */}
       {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-24 bg-stone-100 dark:bg-stone-800 rounded-xl animate-pulse" />
+        <div className="grid grid-cols-1 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="border border-stone-100 dark:border-stone-800 rounded-xl p-5 bg-white dark:bg-stone-900 shadow-sm animate-pulse">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-stone-100 dark:bg-stone-800" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-stone-100 dark:bg-stone-800 rounded w-1/4" />
+                  <div className="h-3 bg-stone-50 dark:bg-stone-800/50 rounded w-1/2" />
+                </div>
+                <div className="w-20 h-8 rounded-lg bg-stone-100 dark:bg-stone-800" />
+              </div>
+            </div>
           ))}
         </div>
       ) : sources.length === 0 ? (
@@ -255,7 +255,7 @@ const Sources: React.FC = () => {
 
                   <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => copyWebhookUrl(source.id)}
+                      onClick={() => copyWebhookUrl(source.webhookUrl)}
                       className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-stone-600 dark:text-stone-300 border border-warm-border dark:border-stone-700 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
                       title="Copy webhook URL"
                     >
@@ -289,7 +289,7 @@ const Sources: React.FC = () => {
                 <div className="mt-4 flex items-center gap-2 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-2">
                   <span className="text-[10px] font-bold uppercase text-stone-400 shrink-0">Webhook URL</span>
                   <span className="flex-1 text-xs font-mono text-stone-500 dark:text-stone-400 truncate">
-                    {getWebhookUrl(source.id)}
+                    {source.webhookUrl}
                   </span>
                 </div>
               </motion.div>

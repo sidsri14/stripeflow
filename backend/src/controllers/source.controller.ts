@@ -1,14 +1,16 @@
 import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '../middleware/auth.middleware.js';
 import { SourceService } from '../services/source.service.js';
+import { AuditService } from '../services/audit.service.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 import { z } from 'zod';
 
 const connectSchema = z.object({
-  keyId: z.string().min(1),
-  keySecret: z.string().min(1),
-  webhookSecret: z.string().min(1),
-  name: z.string().optional(),
+  // Razorpay key IDs are always rzp_test_... or rzp_live_... followed by 14+ alphanumeric chars
+  keyId: z.string().regex(/^rzp_(test|live)_[a-zA-Z0-9]{14,}$/, 'Invalid Razorpay Key ID format'),
+  keySecret: z.string().min(20).max(100),
+  webhookSecret: z.string().min(20).max(256),
+  name: z.string().max(100).optional(),
 });
 
 export const connectSource = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -36,7 +38,9 @@ export const getSources = async (req: AuthRequest, res: Response, next: NextFunc
 
 export const deleteSource = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await SourceService.deleteSource(req.userId!, req.params['id'] as string);
+    const sourceId = req.params['id'] as string;
+    await SourceService.deleteSource(req.userId!, sourceId);
+    await AuditService.log(req.userId!, 'SOURCE_DELETED', 'PaymentSource', sourceId);
     successResponse(res, { deleted: true });
   } catch (error: any) {
     next(error);

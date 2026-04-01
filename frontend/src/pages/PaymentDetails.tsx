@@ -53,6 +53,9 @@ const formatAmount = (paise: number, currency: string) => {
 const daysSince = (dateStr: string) =>
   Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
 
+const formatDate = (dateStr: string) =>
+  new Date(dateStr).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const styles: Record<string, string> = {
     pending:   'bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800',
@@ -202,7 +205,7 @@ const PaymentDetails: React.FC = () => {
                   <td className="px-6 py-3 capitalize font-medium text-stone-700 dark:text-stone-200">{r.type}</td>
                   <td className="px-6 py-3 text-stone-500">Day {r.dayOffset}</td>
                   <td className="px-6 py-3 text-stone-500">
-                    {new Date(r.sentAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                    {formatDate(r.sentAt)}
                   </td>
                   <td className="px-6 py-3">
                     <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-semibold">
@@ -232,7 +235,7 @@ const PaymentDetails: React.FC = () => {
       <div className="text-xs text-stone-300 dark:text-stone-600 font-mono">
         Payment ID: {payment.paymentId}
         {payment.orderId && ` · Order ID: ${payment.orderId}`}
-        {payment.recoveredAt && ` · Recovered: ${new Date(payment.recoveredAt).toLocaleDateString('en-IN')}`}
+        {payment.recoveredAt && ` · Recovered: ${formatDate(payment.recoveredAt)}`}
       </div>
     </motion.div>
   );

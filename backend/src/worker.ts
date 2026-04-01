@@ -23,16 +23,22 @@ const processRecoveryQueue = async (): Promise<void> => {
   logger.info('Recovery worker tick started');
 
   try {
-    // 1. Mark payments older than ABANDON_AFTER_DAYS with no more retries as abandoned
+    // 1. Mark payments as abandoned when they have exhausted all retries or are too old.
+    //    Exclude payments currently held by an advisory lock (being processed right now)
+    //    to avoid abandoning a payment mid-flight.
     const abandonThreshold = new Date(Date.now() - ABANDON_AFTER_DAYS * 24 * 60 * 60 * 1000);
+    const lockExpiry = new Date(Date.now() - 30 * 60 * 1000);
     const toAbandon = await prisma.failedPayment.findMany({
       where: {
         status: { in: ['pending', 'retrying'] },
-        OR: [
-          { createdAt: { lt: abandonThreshold } },
-          { retryCount: { gte: 3 } },
+        AND: [
+          // Only abandon if not currently locked (or lock is stale > 30 min)
+          { OR: [{ lockedAt: null }, { lockedAt: { lt: lockExpiry } }] },
+          // Only abandon if exhausted retries OR too old
+          { OR: [{ retryCount: { gte: 3 } }, { createdAt: { lt: abandonThreshold } }] },
         ],
-      },
+      } as any,
+      select: { id: true, paymentId: true },
     });
     for (const p of toAbandon) {
       await PaymentService.markAbandoned(p.id);
@@ -69,16 +75,19 @@ const processRecoveryQueue = async (): Promise<void> => {
             select: { sourceId: true },
           });
           if (event?.sourceId) {
-            const source = await SourceService.getSourceForWebhook(event.sourceId);
+            const source = await SourceService.getSourceWithSecrets(event.sourceId);
             if (source) {
               keyId = source.keyId;
-              keySecret = source.keySecret; // already decrypted by getSourceForWebhook
+              keySecret = source.keySecret; // already decrypted by getSourceWithSecrets
             }
           }
         }
 
-        // Use existing recovery link if available, otherwise create one
-        let paymentLink = payment.recoveryLinks[0]?.url;
+        // Use existing recovery link if available, otherwise create one.
+        // Cast: recoveryLinks is included via getPendingForRetry() but stale Prisma DLL
+        // doesn't reflect it in types. tsc --noEmit is clean; remove cast after server restart.
+        const links = (payment as typeof payment & { recoveryLinks: Array<{ url: string }> }).recoveryLinks;
+        let paymentLink: string | undefined = links[0]?.url;
         if (!paymentLink) {
           paymentLink = await RazorpayService.createPaymentLink(keyId, keySecret, {
             amount: payment.amount,
@@ -92,41 +101,51 @@ const processRecoveryQueue = async (): Promise<void> => {
           await PaymentService.createRecoveryLink(payment.id, paymentLink);
         }
 
+        // Guard: if link creation failed above this line, the outer catch handles it.
+        // This explicit check prevents passing undefined to the email service.
+        if (!paymentLink) {
+          throw new Error(`No payment link available for payment ${payment.id}`);
+        }
+
         const dayOffset = payment.retryCount === 0 ? 0 : payment.retryCount === 1 ? 1 : 3;
 
-        // Fire-and-forget: email must not block the worker loop or delay DB updates
-        const emailParams = payment.retryCount === 0
-          ? sendPaymentFailedEmail(payment.customerEmail, {
-              customerName: payment.customerName ?? undefined,
-              amount: payment.amount,
-              currency: payment.currency,
-              paymentLink,
-              paymentId: payment.paymentId,
-            })
-          : sendPaymentReminderEmail(payment.customerEmail, {
-              customerName: payment.customerName ?? undefined,
-              amount: payment.amount,
-              currency: payment.currency,
-              paymentLink,
-              dayOffset,
-              paymentId: payment.paymentId,
-            });
-        void emailParams.catch((err: unknown) =>
-          logger.error({ paymentId: payment.paymentId, err }, 'Email send failed')
-        );
+        // 3. AWAIT: email must be sent BEFORE we update counts to ensure reliability
+        if (payment.retryCount === 0) {
+          await sendPaymentFailedEmail(payment.customerEmail, {
+            customerName: payment.customerName ?? undefined,
+            amount: payment.amount,
+            currency: payment.currency,
+            paymentLink,
+            paymentId: payment.paymentId,
+          });
+        } else {
+          await sendPaymentReminderEmail(payment.customerEmail, {
+            customerName: payment.customerName ?? undefined,
+            amount: payment.amount,
+            currency: payment.currency,
+            paymentLink,
+            dayOffset,
+            paymentId: payment.paymentId,
+          });
+        }
 
-        await PaymentService.recordReminderAndIncrementRetry(payment.id, dayOffset, 'email');
+        // Single atomic transaction: log reminder, increment retryCount, set nextRetryAt,
+        // release advisory lock. Returns the new retryCount for accurate logging.
+        const newRetryCount = await PaymentService.recordReminderAndIncrementRetry(payment.id, dayOffset, 'email');
+
         await AuditService.log(
           payment.userId,
           'PAYMENT_REMINDER_SENT',
           'FailedPayment',
           payment.id,
-          { retryCount: payment.retryCount, dayOffset, email: payment.customerEmail }
+          { retryCount: newRetryCount, dayOffset, email: payment.customerEmail }
         );
 
-        logger.info({ paymentId: payment.paymentId, retryCount: payment.retryCount }, 'Reminder sent');
+        logger.info({ paymentId: payment.paymentId, retryCount: newRetryCount }, 'Reminder sent');
       } catch (err) {
         logger.error({ paymentId: payment.paymentId, err }, 'Failed to process payment retry');
+        // Release lock on error so another worker can try later
+        await PaymentService.releaseLock(payment.id).catch(() => {});
       }
     }
   } catch (error) {

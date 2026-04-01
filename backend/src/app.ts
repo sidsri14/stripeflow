@@ -1,5 +1,13 @@
 import 'dotenv/config';
 import express from 'express';
+import crypto from 'crypto';
+
+// Extend Express Request so req.id is typed everywhere without casting
+declare global {
+  namespace Express {
+    interface Request { id: string; }
+  }
+}
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -15,10 +23,17 @@ import dashboardRoutes from './routes/dashboard.routes.js';
 import sourceRoutes from './routes/source.routes.js';
 import demoRoutes from './routes/demo.routes.js';
 import billingRoutes from './routes/billing.routes.js';
+import healthRoutes from './routes/health.routes.js';
 import { errorHandler } from './middleware/error.middleware.js';
-import { successResponse } from './utils/apiResponse.js';
+import pino from 'pino';
 
-if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is required.');
+const logger = pino({
+  transport: { target: 'pino-pretty', options: { colorize: true } },
+});
+
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must be at least 32 characters long for production security.');
+}
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required.');
 if (!process.env.ENCRYPTION_KEY || process.env.ENCRYPTION_KEY.length !== 64) {
   throw new Error('ENCRYPTION_KEY must be a 64-char hex string. Generate: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
@@ -29,7 +44,51 @@ const __dirname = path.dirname(__filename);
 
 export const app = express();
 
-app.use(helmet());
+app.use((req, _res, next) => {
+  req.id = crypto.randomUUID();
+  next();
+});
+
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  message: { error: 'Global rate limit exceeded' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(globalLimiter);
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.info({
+      id: req.id,
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      ip: req.ip,
+    }, 'Request complete');
+  });
+  next();
+});
+
+app.use(helmet({
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"],
+    },
+  },
+}));
 app.use(cookieParser(process.env.COOKIE_SECRET || process.env.JWT_SECRET));
 
 // CRITICAL: Webhook route MUST be registered before express.json()
@@ -85,16 +144,14 @@ app.get('/api/csrf-token', (req, res) => {
 
 app.use('/api', doubleCsrfProtection);
 
+// ── API Routes
+app.use('/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/sources', sourceRoutes);
 app.use('/api/demo', demoRoutes);
 app.use('/api/billing', billingRoutes);
-
-app.get('/health', (_req, res) => {
-  successResponse(res, { status: 'ok', service: 'PayRecover' });
-});
 
 // Serve frontend static files in production
 const distPath = path.join(__dirname, '../../frontend/dist');

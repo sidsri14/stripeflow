@@ -34,20 +34,35 @@ export class PaymentService {
 
   static async getPayments(
     userId: string,
-    filters?: { status?: string; search?: string; page?: number; limit?: number }
+    filters?: {
+      status?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+      sortKey?: string;
+      sortDir?: 'asc' | 'desc';
+    }
   ) {
     const page = Math.max(1, filters?.page ?? 1);
     const limit = Math.min(100, Math.max(1, filters?.limit ?? 50));
     const skip = (page - 1) * limit;
 
+    // Whitelist sortKey to prevent field enumeration via property injection
+    const ALLOWED_SORT_KEYS = ['createdAt', 'amount', 'status', 'retryCount'];
+    const sortKey = ALLOWED_SORT_KEYS.includes(filters?.sortKey ?? '') ? filters!.sortKey! : 'createdAt';
+    const sortDir: 'asc' | 'desc' = filters?.sortDir === 'asc' ? 'asc' : 'desc';
+
+    // Cap search to prevent excessive DB CPU from very long inputs
+    const search = filters?.search ? filters.search.slice(0, 100) : undefined;
+
     const where = {
       userId,
-      ...(filters?.status && { status: filters.status }),
-      ...(filters?.search && {
+      ...(filters?.status && filters.status !== 'ALL' && { status: filters.status }),
+      ...(search && {
         OR: [
-          { customerEmail: { contains: filters.search } },
-          { customerName: { contains: filters.search } },
-          { paymentId: { contains: filters.search } },
+          { customerEmail: { contains: search } },
+          { customerName: { contains: search } },
+          { paymentId: { contains: search } },
         ],
       }),
     };
@@ -55,7 +70,7 @@ export class PaymentService {
     const [payments, total] = await Promise.all([
       prisma.failedPayment.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [sortKey]: sortDir },
         skip,
         take: limit,
         include: {
@@ -88,52 +103,44 @@ export class PaymentService {
   /**
    * Aggregates payment statistics using DB-side aggregation (no full table scan).
    * Runs 4 parallel queries instead of fetching all rows into JS.
+   * Returns zeroed stats on DB error so the dashboard degrades gracefully.
    */
   static async getDashboardStats(userId: string) {
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    const [totalAgg, recoveredAgg, weekAgg, monthAgg] = await Promise.all([
-      // Total failed count + sum
-      prisma.failedPayment.aggregate({
-        where: { userId },
-        _count: { id: true },
-        _sum: { amount: true },
-      }),
-      // All-time recovered count + sum
-      prisma.failedPayment.aggregate({
-        where: { userId, status: 'recovered' },
-        _count: { id: true },
-        _sum: { amount: true },
-      }),
-      // Recovered this week
-      prisma.failedPayment.aggregate({
-        where: { userId, status: 'recovered', recoveredAt: { gte: weekAgo } },
-        _sum: { amount: true },
-      }),
-      // Recovered this month
-      prisma.failedPayment.aggregate({
-        where: { userId, status: 'recovered', recoveredAt: { gte: monthAgo } },
-        _sum: { amount: true },
-      }),
-    ]);
-
-    const totalFailed = totalAgg._count.id;
-    const totalRecovered = recoveredAgg._count.id;
-    const totalFailedAmount = totalAgg._sum.amount ?? 0;
-    const totalRecoveredAmount = recoveredAgg._sum.amount ?? 0;
-    const recoveryRate = totalFailed > 0 ? (totalRecovered / totalFailed) * 100 : 0;
-
-    return {
-      totalFailed,
-      totalRecovered,
-      recoveryRate: Math.round(recoveryRate * 10) / 10,
-      totalFailedAmount,
-      totalRecoveredAmount,
-      recoveredThisWeek: weekAgg._sum.amount ?? 0,
-      recoveredThisMonth: monthAgg._sum.amount ?? 0,
+    const ZERO = {
+      totalFailed: 0, totalRecovered: 0, recoveryRate: 0,
+      totalFailedAmount: 0, totalRecoveredAmount: 0,
+      recoveredThisWeek: 0, recoveredThisMonth: 0,
     };
+    try {
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      const [totalAgg, recoveredAgg, weekAgg, monthAgg] = await Promise.all([
+        prisma.failedPayment.aggregate({ where: { userId }, _count: { id: true }, _sum: { amount: true } }),
+        prisma.failedPayment.aggregate({ where: { userId, status: 'recovered' }, _count: { id: true }, _sum: { amount: true } }),
+        prisma.failedPayment.aggregate({ where: { userId, status: 'recovered', recoveredAt: { gte: weekAgo } }, _sum: { amount: true } }),
+        prisma.failedPayment.aggregate({ where: { userId, status: 'recovered', recoveredAt: { gte: monthAgo } }, _sum: { amount: true } }),
+      ]);
+
+      const totalFailed = totalAgg._count.id;
+      const totalRecovered = recoveredAgg._count.id;
+      const totalFailedAmount = totalAgg._sum.amount ?? 0;
+      const totalRecoveredAmount = recoveredAgg._sum.amount ?? 0;
+      const recoveryRate = totalFailed > 0 ? (totalRecovered / totalFailed) * 100 : 0;
+
+      return {
+        totalFailed,
+        totalRecovered,
+        recoveryRate: Math.round(recoveryRate * 10) / 10,
+        totalFailedAmount,
+        totalRecoveredAmount,
+        recoveredThisWeek: weekAgg._sum.amount ?? 0,
+        recoveredThisMonth: monthAgg._sum.amount ?? 0,
+      };
+    } catch {
+      return ZERO;
+    }
   }
 
   static async markRecovered(failedPaymentId: string, via: 'link' | 'external' = 'link') {
@@ -147,17 +154,49 @@ export class PaymentService {
   // Retry timing controlled by nextRetryAt field
   // Only paid-plan users get auto-recovery. Free plan = tracking only.
   static async getPendingForRetry() {
-    return prisma.failedPayment.findMany({
+    const lockExpiry = new Date(Date.now() - 30 * 60 * 1000); // 30 min lock expiry
+    const now = new Date();
+
+    // 1. Find payments that are due and not locked (or lock expired)
+    const candidates = await prisma.failedPayment.findMany({
       where: {
         status: { in: ['pending', 'retrying'] },
         retryCount: { lt: 3 },
-        nextRetryAt: { lte: new Date() },
+        nextRetryAt: { lte: now },
         user: { plan: 'paid' },
+        OR: [
+          { lockedAt: null },
+          { lockedAt: { lt: lockExpiry } },
+        ],
       },
+      select: { id: true },
+      take: 20, // process at most 20 per tick to avoid overwhelming provider
+    });
+
+    if (candidates.length === 0) return [];
+
+    const candidateIds = candidates.map(c => c.id);
+
+    // 2. Clear out any old locks for these IDs and set new lock
+    // (This works as an advisory lock in concurrent environments)
+    await prisma.failedPayment.updateMany({
+      where: { id: { in: candidateIds } },
+      data: { lockedAt: now },
+    });
+
+    // 3. Fetch the full record for the locked items
+    return prisma.failedPayment.findMany({
+      where: { id: { in: candidateIds }, lockedAt: now },
       include: {
         recoveryLinks: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
-      take: 50, // process at most 50 per tick to keep cycles bounded
+    });
+  }
+
+  static async releaseLock(id: string) {
+    await prisma.failedPayment.update({
+      where: { id },
+      data: { lockedAt: null },
     });
   }
 
@@ -168,16 +207,16 @@ export class PaymentService {
   }
 
   /**
-   * Atomically records a reminder AND advances the retry counter in a single
-   * Prisma transaction. Prevents the inconsistent state where a reminder is
-   * logged but the retry count is never incremented (or vice versa) if one
-   * of the writes fails.
+   * Atomically: creates a reminder log, increments retryCount, sets next retry
+   * schedule, and releases the advisory lock — all in one Prisma transaction.
+   *
+   * Returns the new retryCount so callers can log the correct value.
    */
   static async recordReminderAndIncrementRetry(
     failedPaymentId: string,
     dayOffset: number,
     type: string
-  ) {
+  ): Promise<number> {
     const payment = await prisma.failedPayment.findUnique({
       where: { id: failedPaymentId },
       select: { retryCount: true },
@@ -193,9 +232,17 @@ export class PaymentService {
       }),
       prisma.failedPayment.update({
         where: { id: failedPaymentId },
-        data: { retryCount: newCount, lastRetryAt: new Date(), nextRetryAt, status: 'retrying' },
+        data: {
+          retryCount: newCount,
+          lastRetryAt: new Date(),
+          nextRetryAt,
+          status: 'retrying',
+          lockedAt: null, // release advisory lock
+        },
       }),
     ]);
+
+    return newCount;
   }
 
   static async createRecoveryLink(failedPaymentId: string, url: string) {
@@ -211,30 +258,6 @@ export class PaymentService {
     72 * 60 * 60 * 1000,  // after retry 1 → wait 72h  (day 3 final notice)
     null,                  // after retry 2 → no more retries; worker abandons at retryCount >= 3
   ];
-
-  static async incrementRetry(failedPaymentId: string) {
-    // Single atomic round trip: read current retryCount, compute next state, write — all in one query.
-    // We can't use Prisma's { increment: 1 } here alone because we also need to compute
-    // nextRetryAt from the new count, so we fetch first but keep it to one extra query.
-    const payment = await prisma.failedPayment.findUnique({
-      where: { id: failedPaymentId },
-      select: { retryCount: true },
-    });
-    const currentCount = payment?.retryCount ?? 0;
-    const newCount = currentCount + 1;
-    const delayMs = PaymentService.RETRY_DELAYS_MS[currentCount] ?? null;
-    const nextRetryAt = delayMs !== null ? new Date(Date.now() + delayMs) : null;
-
-    await prisma.failedPayment.update({
-      where: { id: failedPaymentId },
-      data: {
-        retryCount: newCount,
-        lastRetryAt: new Date(),
-        nextRetryAt,
-        status: 'retrying',
-      },
-    });
-  }
 
   /** Extended metrics for the billing/analytics page — DB-side aggregation only. */
   static async getMetrics(userId: string) {

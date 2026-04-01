@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api';
 import toast from 'react-hot-toast';
 import { ShieldAlert, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
-
-type AuthUser = { id: string; email: string; createdAt: string };
+import type { AuthUser } from '../App';
 
 interface Props {
   onLoginSuccess: (user: AuthUser) => void;

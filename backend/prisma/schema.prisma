@@ -56,6 +56,7 @@ model PaymentEvent {
   failedPayment   FailedPayment?
 
   @@index([sourceId])
+  @@index([paymentId])
 }
 
 model FailedPayment {
@@ -75,6 +76,7 @@ model FailedPayment {
   retryCount    Int           @default(0)
   lastRetryAt   DateTime?
   nextRetryAt   DateTime?
+  lockedAt      DateTime?     // For advisory locking in background jobs
   recoveredAt   DateTime?
   recoveredVia  String?       // "link" | "external"
   metadata      String?
@@ -83,7 +85,9 @@ model FailedPayment {
   recoveryLinks RecoveryLink[]
 
   @@index([userId])
+  @@index([status, nextRetryAt, lockedAt])
   @@index([status, nextRetryAt]) // worker query: pending/retrying payments due for retry
+  @@index([userId, status, createdAt])
 }
 
 model RecoveryLink {
@@ -118,4 +122,5 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   @@index([userId, createdAt(sort: Desc)])
+  @@index([resource, resourceId])
 }

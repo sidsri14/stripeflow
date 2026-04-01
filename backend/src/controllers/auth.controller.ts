@@ -41,8 +41,15 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
   }
 };
 
-export const logout = async (req: Request, res: Response): Promise<void> => {
+export const logout = async (_req: Request, res: Response): Promise<void> => {
   res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
+    path: '/',
+  });
+  // Also clear the CSRF cookie so a subsequent login gets a fresh token
+  res.clearCookie('x-csrf-token', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict' as const,
