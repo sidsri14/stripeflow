@@ -71,7 +71,7 @@ export const getPendingRetries = async (): Promise<FailedPaymentWithLinks[]> => 
       status: { in: ['pending', 'retrying'] },
       retryCount: { lt: 3 },
       nextRetryAt: { lte: now },
-      user: { plan: 'paid' },
+      user: { plan: { in: ['starter', 'pro'] } },
       OR: [{ lockedAt: null }, { lockedAt: { lt: lockExpiry } }],
     },
     select: { id: true },

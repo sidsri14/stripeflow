@@ -5,6 +5,7 @@ import { Moon, Sun, LogOut, TrendingUp, Link2, Loader2, Settings as SettingsIcon
 import { Toaster, toast } from 'react-hot-toast';
 import { api } from './api';
 
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -18,7 +19,7 @@ const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 export type AuthUser = {
   id: string;
   email: string;
-  plan: 'free' | 'paid';
+  plan: 'free' | 'starter' | 'pro';
   createdAt: string;
 };
 
@@ -150,7 +151,8 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 function PageTitle() {
   useEffect(() => {
     const titles: Record<string, string> = {
-      '/': 'Dashboard | PayRecover',
+      '/': 'PayRecover | Failed Payment Recovery',
+      '/dashboard': 'Dashboard | PayRecover',
       '/login': 'Sign In | PayRecover',
       '/register': 'Create Account | PayRecover',
       '/sources': 'Payment Sources | PayRecover',
@@ -222,20 +224,24 @@ function App() {
         />
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/login" element={user ? <Navigate to="/" /> : <Login onLoginSuccess={(u) => setUser(u)} />} />
-            <Route path="/register" element={user ? <Navigate to="/" /> : <Register onRegisterSuccess={(u) => setUser(u)} />} />
+            {/* Public Routes */}
+            <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingPage />} />
+            <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login onLoginSuccess={(u) => setUser(u)} />} />
+            <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register onRegisterSuccess={(u) => setUser(u)} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+
+            {/* Protected Routes */}
             <Route path="/*" element={
               user ? (
                 <Layout user={user} onLogout={handleLogout}>
                   <Routes>
-                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/payments/:id" element={<PaymentDetails />} />
                     <Route path="/sources" element={<Sources />} />
                     <Route path="/settings" element={<Settings user={user} onUpdateUser={(u) => setUser(u)} />} />
-                    <Route path="*" element={<Navigate to="/" />} />
+                    <Route path="*" element={<Navigate to="/dashboard" />} />
                   </Routes>
                 </Layout>
               ) : <Navigate to="/login" />

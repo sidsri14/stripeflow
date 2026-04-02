@@ -60,4 +60,12 @@ export class RazorpayService {
   static async getPaymentStatus(paymentId: string) {
     return razorpay.payments.fetch(paymentId);
   }
+
+  /**
+   * Creates a new Razorpay subscription for the platform.
+   * This is used for 'PayRecover Starter' and 'PayRecover Pro' billing.
+   */
+  static async createRazorpaySubscription(data: any) {
+    return (razorpay.subscriptions.create(data) as Promise<any>);
+  }
 }

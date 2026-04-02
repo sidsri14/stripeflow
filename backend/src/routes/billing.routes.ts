@@ -1,11 +1,16 @@
 import { Router } from 'express';
-import { updatePlan } from '../controllers/billing.controller.js';
+import express from 'express';
+import { createSubscription, billingWebhook } from '../controllers/billing.controller.js';
 import { requireAuth } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-router.use(requireAuth);
+// Platform Billing Webhook (Public, signature-verified)
+// This must be placed ABOVE the requireAuth middleware
+router.post('/webhook', express.raw({ type: 'application/json', limit: '100kb' }), billingWebhook);
 
-router.patch('/plan', updatePlan);
+// Protected routes
+router.use(requireAuth);
+router.post('/create-subscription', createSubscription);
 
 export default router;

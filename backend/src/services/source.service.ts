@@ -9,11 +9,11 @@ export const getWebhookUrl = (sourceId: string) => {
 
 export const createPaymentSource = (userId: string, data: any) =>
   prisma.paymentSource.create({
-    data: { 
-      userId, keyId: data.keyId, 
-      keySecret: encrypt(data.keySecret), 
-      webhookSecret: encrypt(data.webhookSecret), 
-      name: data.name 
+    data: {
+      userId, keyId: data.keyId,
+      keySecret: encrypt(data.keySecret),
+      webhookSecret: encrypt(data.webhookSecret),
+      name: data.name
     },
     select: { id: true, userId: true, provider: true, name: true, keyId: true, createdAt: true },
   });
@@ -38,16 +38,7 @@ export const getSourceWithSecrets = async (id: string) => {
   return s ? { ...s, keySecret: decrypt(s.keySecret), webhookSecret: decrypt(s.webhookSecret) } : null;
 };
 
-import { RazorpayService } from './RazorpayService.js';
-
-export const validateSourceCredentials = async (keyId: string, keySecret: string) => {
-  try {
-    // Attempt to verify credentials by pinging Razorpay
-    // We use a dummy ID; a 404 response confirms the keys are valid (but ID is fake)
-    // A 401 response confirms the keys are invalid.
-    await RazorpayService.getPaymentStatus('pay_verification_test');
-    return true;
-  } catch (err: any) {
-    return err?.statusCode === 404;
-  }
-};
+// Validates the provided keyId + keySecret against Razorpay by calling payments.all.
+// Uses the caller-supplied credentials, not the global env var keys.
+export const validateSourceCredentials = (keyId: string, keySecret: string) =>
+  validateRazorpayCredentials(keyId, keySecret);

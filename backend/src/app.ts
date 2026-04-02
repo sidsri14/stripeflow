@@ -90,6 +90,7 @@ app.get('/health', async (_req, res) => {
   res.status(healthy ? 200 : 503).json({
     status: healthy ? 'ok' : 'degraded',
     version: '1.0.0',
+    timestamp: new Date().toISOString(),
     ...checks,
   });
 });
