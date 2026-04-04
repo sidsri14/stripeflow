@@ -1,19 +1,21 @@
 import { Router } from 'express';
 import { register, login, logout, getMe, verifyEmail, requestPasswordReset, resetPassword } from '../controllers/auth.controller.js';
 import { requireAuth } from '../middleware/auth.middleware.js';
+import { csrfCheck } from '../middleware/csrf.middleware.js';
 import { validateRequest } from '../middleware/validate.middleware.js';
 import { registerSchema, loginSchema } from '../validators/auth.validator.js';
 import { authLimiter } from '../middleware/rateLimit.middleware.js';
 
 const router = Router();
 
-// Apply auth rate limiting to sensitive endpoints
-router.post('/register', authLimiter, validateRequest(registerSchema), register);
-router.post('/login', authLimiter, validateRequest(loginSchema), login);
-router.post('/logout', logout);
+// Public state-changing routes — CSRF required but no auth yet
+router.post('/register', csrfCheck, authLimiter, validateRequest(registerSchema), register);
+router.post('/login', csrfCheck, authLimiter, validateRequest(loginSchema), login);
+router.post('/logout', csrfCheck, logout);
+router.post('/verify-email', csrfCheck, verifyEmail);
+router.post('/forgot-password', csrfCheck, authLimiter, requestPasswordReset);
+router.post('/reset-password', csrfCheck, authLimiter, resetPassword);
+// Read-only routes — no CSRF needed
 router.get('/me', requireAuth, getMe);
-router.post('/verify-email', verifyEmail);
-router.post('/forgot-password', authLimiter, requestPasswordReset);
-router.post('/reset-password', authLimiter, resetPassword);
 
 export default router;

@@ -46,24 +46,6 @@ app.use(cors({
 app.use(morgan('dev'));
 app.use(cookieParser());
 
-// CSRF validation — must run after cookieParser, before routes.
-// Webhook paths are exempt (Razorpay HMAC signature is the security mechanism there).
-const CSRF_EXEMPT_PREFIXES = ['/api/webhooks/', '/api/billing/webhook'];
-app.use((req: Request, res: Response, next: NextFunction) => {
-  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
-  const reqPath = req.originalUrl.split('?')[0] ?? '';
-  if (!reqPath.startsWith('/api/')) return next();
-  if (CSRF_EXEMPT_PREFIXES.some(p => reqPath.startsWith(p))) return next();
-
-  const cookieToken = req.cookies?.['csrf-token'];
-  const headerToken = req.headers['x-csrf-token'];
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
-    res.status(403).json({ success: false, error: 'Invalid CSRF token' });
-    return;
-  }
-  next();
-});
-
 // Webhook routes need raw body for signature verification
 app.use('/api/webhooks/razorpay', webhookRoutes);
 app.use('/api/billing/webhook', express.raw({ type: 'application/json' }), billingWebhook);
@@ -85,22 +67,22 @@ const globalLimiter = rateLimit({
 
 app.use('/api/', globalLimiter);
 
-// CSRF Token — returns a per-session token stored in a cookie.
-// The frontend sends it back as 'x-csrf-token' on state-changing requests.
-// Validation is enforced below in csrfProtection middleware.
-// Note: SameSite=Strict cookies already prevent CSRF for browsers; this adds a second layer.
-const CSRF_COOKIE_OPTS = { httpOnly: false, sameSite: 'strict' as const, secure: process.env.NODE_ENV !== 'development', maxAge: 7 * 24 * 3600000 };
-
+// CSRF Token — issues a non-HttpOnly cookie that the frontend echoes back
+// as x-csrf-token on every state-changing request (double-submit pattern).
+// Validated in csrf.middleware.ts, applied per-route.
 app.get('/api/csrf-token', (req, res) => {
   let token = req.cookies?.['csrf-token'];
   if (!token) {
     token = crypto.randomBytes(32).toString('hex');
-    res.cookie('csrf-token', token, CSRF_COOKIE_OPTS);
+    res.cookie('csrf-token', token, {
+      httpOnly: false,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV !== 'development',
+      maxAge: 7 * 24 * 3600000,
+    });
   }
   res.json({ token });
 });
-
-// CSRF validation — global middleware for all state-changing /api/ requests.
 
 // Health Check
 app.get('/health', async (_req, res) => {
