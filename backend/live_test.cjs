@@ -9,6 +9,7 @@
  * (if that endpoint exists) or via direct DB delete (Prisma cascade handles the rest).
  * A unique email per run ensures no collision between test runs.
  */
+require('dotenv').config();
 const axios = require('axios');
 const crypto = require('crypto');
 
@@ -27,6 +28,14 @@ function sign(payload, secret) {
   return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 }
 
+// Set-Cookie response headers include attributes (Path, HttpOnly, SameSite…).
+// A Cookie *request* header must only contain name=value pairs joined by '; '.
+function parseCookies(setCookieHeaders) {
+  if (!setCookieHeaders) return '';
+  const arr = Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders];
+  return arr.map(h => h.split(';')[0]).join('; ');
+}
+
 async function run() {
   let authHeaders;
   let sourceId;
@@ -35,7 +44,7 @@ async function run() {
     // ── 1. CSRF token
     const csrfRes = await axios.get(`${API}/csrf-token`);
     const csrfToken = csrfRes.data.token;
-    const csrfCookie = csrfRes.headers['set-cookie'];
+    const csrfCookie = parseCookies(csrfRes.headers['set-cookie']);
 
     // ── 2. Register
     console.log('1. Registering user...');
@@ -43,7 +52,7 @@ async function run() {
       { email: EMAIL, password: PASSWORD },
       { headers: { 'x-csrf-token': csrfToken, Cookie: csrfCookie } }
     );
-    const authCookie = regRes.headers['set-cookie'];
+    const authCookie = parseCookies(regRes.headers['set-cookie']);
     authHeaders = { Cookie: authCookie, 'x-csrf-token': csrfToken };
     console.log('   ✓ Registered:', EMAIL);
 

@@ -11,7 +11,7 @@ interface OnboardingProps {
   hasSources: boolean;
   hasFailure: boolean;
   hasRecovery: boolean;
-  plan: 'free' | 'paid';
+  plan: string;
   onOpenSources: () => void;
   onSimulate: () => void;
   onUpgrade: () => void;
@@ -47,9 +47,9 @@ export const OnboardingChecklist: React.FC<OnboardingProps> = ({
     {
       id: 'upgrade',
       label: 'Enable Auto-Recovery (Pro)',
-      done: plan === 'paid',
+      done: plan === 'starter' || plan === 'pro',
       action: onUpgrade,
-      btn: plan === 'paid' ? 'Active' : 'Upgrade now',
+      btn: plan === 'starter' || plan === 'pro' ? 'Active' : 'Upgrade now',
       icon: <Sparkles className="w-3 h-3 text-emerald-500" />,
     }
   ];

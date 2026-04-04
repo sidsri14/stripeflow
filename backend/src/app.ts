@@ -1,9 +1,11 @@
 import 'dotenv/config';
+import crypto from 'crypto';
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import { rateLimit } from 'express-rate-limit';
 import authRoutes from './routes/auth.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
@@ -12,6 +14,7 @@ import billingRoutes from './routes/billing.routes.js';
 import demoRoutes from './routes/demo.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import sourceRoutes from './routes/source.routes.js';
+import { billingWebhook } from './controllers/billing.controller.js';
 import { prisma } from './utils/prisma.js';
 import { redisConnection } from './jobs/recovery.queue.js';
 
@@ -41,9 +44,29 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('dev'));
+app.use(cookieParser());
 
-// Webhook route needs raw body for signature verification
-app.use('/api/webhooks', webhookRoutes);
+// CSRF validation — must run after cookieParser, before routes.
+// Webhook paths are exempt (Razorpay HMAC signature is the security mechanism there).
+const CSRF_EXEMPT_PREFIXES = ['/api/webhooks/', '/api/billing/webhook'];
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+  const reqPath = req.originalUrl.split('?')[0] ?? '';
+  if (!reqPath.startsWith('/api/')) return next();
+  if (CSRF_EXEMPT_PREFIXES.some(p => reqPath.startsWith(p))) return next();
+
+  const cookieToken = req.cookies?.['csrf-token'];
+  const headerToken = req.headers['x-csrf-token'];
+  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+    res.status(403).json({ success: false, error: 'Invalid CSRF token' });
+    return;
+  }
+  next();
+});
+
+// Webhook routes need raw body for signature verification
+app.use('/api/webhooks/razorpay', webhookRoutes);
+app.use('/api/billing/webhook', express.raw({ type: 'application/json' }), billingWebhook);
 
 // General purpose body parsers
 app.use(express.json());
@@ -64,15 +87,20 @@ app.use('/api/', globalLimiter);
 
 // CSRF Token — returns a per-session token stored in a cookie.
 // The frontend sends it back as 'x-csrf-token' on state-changing requests.
-// Note: SameSite=Strict cookies already prevent CSRF; this adds a second layer.
+// Validation is enforced below in csrfProtection middleware.
+// Note: SameSite=Strict cookies already prevent CSRF for browsers; this adds a second layer.
+const CSRF_COOKIE_OPTS = { httpOnly: false, sameSite: 'strict' as const, secure: process.env.NODE_ENV !== 'development', maxAge: 7 * 24 * 3600000 };
+
 app.get('/api/csrf-token', (req, res) => {
   let token = req.cookies?.['csrf-token'];
   if (!token) {
-    token = require('crypto').randomBytes(32).toString('hex');
-    res.cookie('csrf-token', token, { httpOnly: false, sameSite: 'strict', secure: process.env.NODE_ENV !== 'development', maxAge: 7 * 24 * 3600000 });
+    token = crypto.randomBytes(32).toString('hex');
+    res.cookie('csrf-token', token, CSRF_COOKIE_OPTS);
   }
   res.json({ token });
 });
+
+// CSRF validation — global middleware for all state-changing /api/ requests.
 
 // Health Check
 app.get('/health', async (_req, res) => {

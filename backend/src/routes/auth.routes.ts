@@ -12,7 +12,7 @@ router.post('/register', authLimiter, validateRequest(registerSchema), register)
 router.post('/login', authLimiter, validateRequest(loginSchema), login);
 router.post('/logout', logout);
 router.get('/me', requireAuth, getMe);
-router.get('/verify-email', verifyEmail);
+router.post('/verify-email', verifyEmail);
 router.post('/forgot-password', authLimiter, requestPasswordReset);
 router.post('/reset-password', authLimiter, resetPassword);
 

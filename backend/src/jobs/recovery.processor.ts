@@ -2,6 +2,8 @@ import type { Job } from 'bullmq';
 import pino from 'pino';
 import { prisma } from '../utils/prisma.js';
 import { RazorpayService } from '../services/RazorpayService.js';
+import { getPaymentLink } from '../services/razorpay.service.js';
+import { getSourceWithSecrets } from '../services/source.service.js';
 import { EmailService } from '../services/EmailService.js';
 import { recoveryQueue } from './recovery.queue.js';
 import { RETRY_DELAYS_MS } from '../services/payment.service.js';
@@ -22,7 +24,7 @@ export async function processRecoveryJob(job: Job<RecoveryJobData>): Promise<voi
   // 1. Eligibility & Race Condition Guard
   const payment = await prisma.failedPayment.findUnique({
     where: { id: failedPaymentId },
-    include: { user: true }
+    include: { user: true, event: { select: { sourceId: true } } },
   });
 
   if (!payment || payment.status === 'recovered' || payment.status === 'abandoned') {
@@ -37,10 +39,36 @@ export async function processRecoveryJob(job: Job<RecoveryJobData>): Promise<voi
   });
 
   try {
-    // 3. Create/Fetch Recovery Link
-    // MVP: Always create a fresh link for simplicity, or reuse if not expired
-    const link = await RazorpayService.createPaymentLink(payment);
-    
+    // 3. Create/Fetch Recovery Link using per-source credentials when available.
+    // Demo payments (no eventId/sourceId) fall back to global Razorpay env credentials.
+    let link: string | null = null;
+    const sourceId = payment.event?.sourceId;
+    if (sourceId) {
+      const source = await getSourceWithSecrets(sourceId);
+      if (source) {
+        link = await getPaymentLink(source.keyId, source.keySecret, {
+          amount: payment.amount,
+          currency: payment.currency,
+          customerName: payment.customerName,
+          customerEmail: payment.customerEmail,
+          customerPhone: payment.customerPhone,
+          referenceId: payment.id,
+          description: `Recovery for ${payment.paymentId}`,
+        });
+      }
+    }
+    if (!link) {
+      // Fallback: use global Razorpay credentials (for demo payments or missing source)
+      link = await RazorpayService.createPaymentLink(payment);
+    }
+
+    if (!link) {
+      // Both link generation paths failed (e.g. invalid test credentials).
+      // Release the lock and let BullMQ retry the job rather than storing a null URL.
+      logger.warn({ failedPaymentId }, 'Failed to generate recovery link — will retry');
+      throw new Error('Recovery link generation failed');
+    }
+
     // Store link in DB with 7-day expiration
     await prisma.recoveryLink.create({
       data: {
@@ -59,7 +87,7 @@ export async function processRecoveryJob(job: Job<RecoveryJobData>): Promise<voi
       if (nextDelay === undefined) throw new Error('Invalid retry delay configuration');
 
       await recoveryQueue.add(
-        'payment-recovery',
+        'process-payment',
         { failedPaymentId },
         { delay: nextDelay }
       );

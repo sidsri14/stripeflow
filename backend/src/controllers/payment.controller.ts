@@ -6,12 +6,14 @@ import { enqueueRecoveryJob } from '../jobs/recovery.queue.js';
 
 export const getPayments = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { status, search, page, limit } = req.query;
+    const { status, search, page, limit, sortKey, sortDir } = req.query;
     const result = await getPaymentsList(req.userId!, {
       status: status ? String(status) : undefined,
       search: search ? String(search) : undefined,
       page: page ? Math.max(1, Number(page)) : 1,
       limit: limit ? Math.min(100, Math.max(1, Number(limit))) : 50,
+      sortKey: sortKey ? String(sortKey) : 'createdAt',
+      sortDir: sortDir ? String(sortDir) : 'desc',
     });
     successResponse(res, result);
   } catch (err) { next(err); }

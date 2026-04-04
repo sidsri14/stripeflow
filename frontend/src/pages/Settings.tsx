@@ -13,12 +13,12 @@ interface Props {
 const Settings: React.FC<Props> = ({ user, onUpdateUser }) => {
   const [loading, setLoading] = useState(false);
 
-  const handleUpdatePlan = async (plan: 'free' | 'paid') => {
+  const handleUpdatePlan = async (plan: 'free' | 'pro') => {
     setLoading(true);
     try {
       const { data } = await api.patch('/billing/plan', { plan });
       if (data.success) {
-        toast.success(`Plan updated to ${plan}`);
+        toast.success(`Plan updated to ${plan === 'free' ? 'Free' : 'Pro'}`);
         onUpdateUser(data.data.user);
       }
     } catch (err: any) {
@@ -84,7 +84,7 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser }) => {
           </div>
 
           {/* Paid Plan */}
-          <div className={`p-6 rounded-2xl border transition-all ${user.plan === 'paid' ? 'border-emerald-500 bg-white dark:bg-stone-800 shadow-soft' : 'border-emerald-600/30 bg-emerald-50/10 dark:bg-emerald-900/5 shadow-soft'}`}>
+          <div className={`p-6 rounded-2xl border transition-all ${user.plan === 'pro' || user.plan === 'starter' ? 'border-emerald-500 bg-white dark:bg-stone-800 shadow-soft' : 'border-emerald-600/30 bg-emerald-50/10 dark:bg-emerald-900/5 shadow-soft'}`}>
             <div className="flex justify-between items-start mb-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -93,7 +93,7 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser }) => {
                 </div>
                 <p className="text-2xl font-black text-stone-900 dark:text-white mt-1">₹1,499<span className="text-sm font-medium text-stone-400">/mo</span></p>
               </div>
-              {user.plan === 'paid' ? (
+              {user.plan === 'pro' || user.plan === 'starter' ? (
                 <span className="px-2 py-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold uppercase rounded-md border border-emerald-200 dark:border-emerald-800">Current Plan</span>
               ) : (
                 <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase rounded-md border border-amber-200 dark:border-amber-800 animate-pulse">Unlock Worker</span>
@@ -110,9 +110,9 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser }) => {
                 <Check className="w-4 h-4 text-emerald-500" /> Custom branding (coming soon)
               </li>
             </ul>
-            {user.plan !== 'paid' ? (
-              <button 
-                onClick={() => handleUpdatePlan('paid')}
+            {!(user.plan === 'pro' || user.plan === 'starter') ? (
+              <button
+                onClick={() => handleUpdatePlan('pro')}
                 disabled={loading}
                 className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
               >

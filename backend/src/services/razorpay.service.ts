@@ -16,7 +16,7 @@ export const getPaymentLink = async (keyId: string, keySecret: string, data: any
       notify: { sms: false, email: false }, // we send our own emails
       reminder_enable: false,
       notes: { internal_id: data.referenceId },
-      callback_url: `${process.env.FRONTEND_URL}/payment-status`,
+      callback_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/payment-status`,
       callback_method: 'get'
     });
     return link.short_url;

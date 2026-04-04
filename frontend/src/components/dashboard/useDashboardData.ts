@@ -24,7 +24,7 @@ export function useDashboardData() {
     },
     staleTime: Infinity,
   });
-  const isPaid = user?.plan === 'paid';
+  const isPaid = user?.plan === 'starter' || user?.plan === 'pro';
   const plan = user?.plan || 'free';
 
   // ── Stats
@@ -53,8 +53,15 @@ export function useDashboardData() {
   const { data: paymentsPage, isLoading, isFetching } = useQuery({
     queryKey: ['payments', page, PAGE_SIZE, search, statusFilter, sortKey, sortDir],
     queryFn: async () => {
-      const { data } = await api.get('/payments', { 
-        params: { page, limit: PAGE_SIZE, search, status: statusFilter, sortKey, sortDir } 
+      const { data } = await api.get('/payments', {
+        params: {
+          page,
+          limit: PAGE_SIZE,
+          search: search || undefined,
+          status: statusFilter === 'ALL' ? undefined : statusFilter.toLowerCase(),
+          sortKey,
+          sortDir,
+        },
       });
       return data.data;
     },
@@ -64,7 +71,7 @@ export function useDashboardData() {
 
   // ── Mutations
   const upgradeMutation = useMutation({
-    mutationFn: () => api.patch('/billing/plan', { plan: 'paid' }),
+    mutationFn: () => api.patch('/billing/plan', { plan: 'pro' }),
     onSuccess: () => {
       toast.success('Pro plan activated!');
       setShowUpgradeModal(false);

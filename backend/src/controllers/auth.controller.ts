@@ -30,13 +30,15 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
 
 export const logout = (_req: Request, res: Response) => {
   res.clearCookie('token', COOKIE_OPS);
-  res.clearCookie('x-csrf-token', COOKIE_OPS);
+  res.clearCookie('csrf-token', { ...COOKIE_OPS, httpOnly: false });
   successResponse(res, { message: 'Logged out' });
 };
 
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
-    const r = await verifyUserEmail(String(req.query.token || ''));
+    // Token arrives in POST body (frontend sends { token }) or query string (direct link click)
+    const token = req.body?.token || String(req.query.token || '');
+    const r = await verifyUserEmail(token);
     successResponse(res, r);
   } catch (err: any) { errorResponse(res, err.message, err.status || 400); }
 };

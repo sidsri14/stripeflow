@@ -20,7 +20,7 @@ export const simulateFailure = async (req: AuthRequest, res: Response, next: Nex
         currency: 'INR',
         status: 'pending',
         metadata: JSON.stringify({ error_code: 'DEMO', error_description: 'Simulated failure' }),
-        nextRetryAt: new Date(Date.now() + 3600000),
+        nextRetryAt: new Date(), // immediately eligible; BullMQ job also queued below
       },
     });
     await logAuditAction(req.userId!, 'DEMO_FAILURE_SIMULATED', 'FailedPayment', p.id);

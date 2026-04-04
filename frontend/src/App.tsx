@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
 import { Moon, Sun, LogOut, TrendingUp, Link2, Loader2, Settings as SettingsIcon } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
@@ -149,6 +149,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 }
 
 function PageTitle() {
+  const location = useLocation();
   useEffect(() => {
     const titles: Record<string, string> = {
       '/': 'PayRecover | Failed Payment Recovery',
@@ -161,9 +162,8 @@ function PageTitle() {
       '/reset-password': 'New Password | PayRecover',
       '/verify-email': 'Verify Account | PayRecover',
     };
-    const path = window.location.pathname;
-    document.title = titles[path] || 'PayRecover | Failed Payment Recovery';
-  }, [window.location.pathname]);
+    document.title = titles[location.pathname] || 'PayRecover | Failed Payment Recovery';
+  }, [location.pathname]);
   return null;
 }
 

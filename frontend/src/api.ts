@@ -45,13 +45,21 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+// Public paths that should never trigger a /login redirect on 401
+const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/'];
+
 // Intercept responses for global error handling (e.g., 401s)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Session expired or invalid — redirect to login so the user can re-authenticate
-      window.location.href = '/login';
+      // Only redirect to /login if the user is on a protected page.
+      // Public pages (register, forgot-password, etc.) get 401 on /auth/me on load — that's expected.
+      const currentPath = window.location.pathname;
+      const isPublicPage = PUBLIC_PATHS.some(p => currentPath === p || currentPath.startsWith(p + '?'));
+      if (!isPublicPage) {
+        window.location.href = '/login';
+      }
     }
     // On CSRF failure, clear the cached token so next request fetches fresh
     if (error.response?.status === 403) {

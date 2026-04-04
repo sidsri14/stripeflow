@@ -15,9 +15,15 @@ const ZERO_METRICS = {
 // Index = current retryCount (before increment): [0→retry1 after 24h, 1→retry2 after 72h]
 export const RETRY_DELAYS_MS = [24 * 60 * 60 * 1000, 72 * 60 * 60 * 1000] as const;
 
+const SORTABLE_FIELDS = ['status', 'amount', 'createdAt', 'retryCount'] as const;
+type SortKey = typeof SORTABLE_FIELDS[number];
+
 /** Retrieves a paginated list of failed payments with optional filters. */
-export const getPaymentsList = async (userId: string, { status, search, page = 1, limit = 50 }: any = {}) => {
-  const where: Prisma.FailedPaymentWhereInput = { 
+export const getPaymentsList = async (userId: string, { status, search, page = 1, limit = 50, sortKey = 'createdAt', sortDir = 'desc' }: any = {}) => {
+  const resolvedSortKey: SortKey = SORTABLE_FIELDS.includes(sortKey) ? sortKey : 'createdAt';
+  const resolvedSortDir: 'asc' | 'desc' = sortDir === 'asc' ? 'asc' : 'desc';
+
+  const where: Prisma.FailedPaymentWhereInput = {
     userId,
     ...(status && { status }),
     ...(search && { OR: [
@@ -29,7 +35,7 @@ export const getPaymentsList = async (userId: string, { status, search, page = 1
 
   const [payments, total] = await Promise.all([
     prisma.failedPayment.findMany({
-      where, orderBy: { createdAt: 'desc' }, skip: (page - 1) * limit, take: limit,
+      where, orderBy: { [resolvedSortKey]: resolvedSortDir }, skip: (page - 1) * limit, take: limit,
       include: { recoveryLinks: { orderBy: { createdAt: 'desc' }, take: 1 } },
     }),
     prisma.failedPayment.count({ where }),
