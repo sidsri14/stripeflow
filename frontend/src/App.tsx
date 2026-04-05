@@ -15,6 +15,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const PaymentStatus = lazy(() => import('./pages/PaymentStatus'));
 
 export type AuthUser = {
   id: string;
@@ -33,7 +34,9 @@ const PageLoader = () => (
 const ThemeToggle = () => {
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
-    return saved === 'dark';
+    if (saved === 'dark') return true;
+    if (saved === 'light') return false;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
   useEffect(() => {
@@ -162,6 +165,7 @@ function PageTitle() {
       '/forgot-password': 'Reset Password | PayRecover',
       '/reset-password': 'New Password | PayRecover',
       '/verify-email': 'Verify Account | PayRecover',
+      '/payment-status': 'Payment Status | PayRecover',
     };
     document.title = titles[location.pathname] || 'PayRecover | Failed Payment Recovery';
   }, [location.pathname]);
@@ -234,6 +238,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/payment-status" element={<PaymentStatus />} />
 
             {/* Protected Routes */}
             <Route path="/*" element={

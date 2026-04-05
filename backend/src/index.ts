@@ -3,6 +3,16 @@ import { prisma } from './utils/prisma.js';
 
 const port = process.env.PORT || 3000;
 
+const REQUIRED_ENV = ['JWT_SECRET', 'ENCRYPTION_KEY', 'DATABASE_URL'] as const;
+function validateEnv(): void {
+  const missing = REQUIRED_ENV.filter(k => !process.env[k]);
+  if (missing.length > 0) {
+    console.error(`[Startup] Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+}
+validateEnv();
+
 const server = app.listen(port, () => {
   console.log(`PayRecover server running on port ${port}`);
 });

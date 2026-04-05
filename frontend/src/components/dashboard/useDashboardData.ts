@@ -14,6 +14,12 @@ export function useDashboardData() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
 
   // ── User / Plan
   const { data: user } = useQuery({
@@ -51,13 +57,13 @@ export function useDashboardData() {
 
   // ── Payments (paginated)
   const { data: paymentsPage, isLoading, isFetching } = useQuery({
-    queryKey: ['payments', page, PAGE_SIZE, search, statusFilter, sortKey, sortDir],
+    queryKey: ['payments', page, PAGE_SIZE, debouncedSearch, statusFilter, sortKey, sortDir],
     queryFn: async () => {
       const { data } = await api.get('/payments', {
         params: {
           page,
           limit: PAGE_SIZE,
-          search: search || undefined,
+          search: debouncedSearch || undefined,
           status: statusFilter === 'ALL' ? undefined : statusFilter.toLowerCase(),
           sortKey,
           sortDir,

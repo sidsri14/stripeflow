@@ -11,14 +11,14 @@ const VERIFY_EXPIRY_HOURS = 24;
 const RESET_EXPIRY_MINUTES = 60;
 
 export const registerUser = async (data: any) => {
-  const { email, password } = data;
+  const { email, password, name } = data;
   if (await prisma.user.findUnique({ where: { email } })) throw new Error('User already exists');
 
   const hashed = await bcrypt.hash(password, 12);
   const vToken = crypto.randomBytes(32).toString('hex');
   const user = await prisma.user.create({
     data: { 
-      email, password: hashed, plan: 'free', 
+      email, password: hashed, name, plan: 'free', 
       emailVerifyToken: vToken, 
       emailVerifyExpiry: new Date(Date.now() + VERIFY_EXPIRY_HOURS * 3600000) 
     },
@@ -29,8 +29,8 @@ export const registerUser = async (data: any) => {
     verifyLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${vToken}`,
   }).catch(e => logger.error(e));
 
-  await logAuditAction(user.id, 'USER_REGISTER', 'User', user.id, { email });
-  return { user: { id: user.id, email }, token };
+  await logAuditAction(user.id, 'USER_REGISTER', 'User', user.id, { email, name });
+  return { user: { id: user.id, email, name: user.name }, token };
 };
 
 // Sentinel hash: used when the user doesn't exist so bcrypt.compare always runs,

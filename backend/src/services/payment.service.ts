@@ -23,13 +23,15 @@ export const getPaymentsList = async (userId: string, { status, search, page = 1
   const resolvedSortKey: SortKey = SORTABLE_FIELDS.includes(sortKey) ? sortKey : 'createdAt';
   const resolvedSortDir: 'asc' | 'desc' = sortDir === 'asc' ? 'asc' : 'desc';
 
+  const safeSearch = search ? String(search).slice(0, 200) : undefined;
+
   const where: Prisma.FailedPaymentWhereInput = {
     userId,
     ...(status && { status }),
-    ...(search && { OR: [
-      { customerEmail: { contains: search } },
-      { paymentId: { contains: search } },
-      { customerName: { contains: search } },
+    ...(safeSearch && { OR: [
+      { customerEmail: { contains: safeSearch } },
+      { paymentId: { contains: safeSearch } },
+      { customerName: { contains: safeSearch } },
     ]}),
   };
 

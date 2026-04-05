@@ -3,6 +3,9 @@ import type { AuthRequest } from '../middleware/auth.middleware.js';
 import { BillingService } from '../services/BillingService.js';
 import { RazorpayService } from '../services/RazorpayService.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
+import pino from 'pino';
+
+const logger = pino({ transport: { target: 'pino-pretty', options: { colorize: true } } });
 
 /**
  * Controller for platform-level billing and subscriptions.
@@ -60,16 +63,22 @@ export const billingWebhook = async (req: any, res: Response, next: NextFunction
     }
 
     const rawBody = (req.body as Buffer).toString('utf8');
-    console.log('[Billing Webhook] Received. sig:', sig, 'secret_len:', webhookSecret.length);
-    
+    logger.debug({ secret_len: webhookSecret.length }, '[Billing Webhook] Received');
+
     const isValid = await RazorpayService.verifyWebhookSignature(rawBody, sig, webhookSecret);
-    console.log('[Billing Webhook] isValid:', isValid);
+    logger.debug({ isValid }, '[Billing Webhook] Signature check result');
 
     if (!isValid) {
       return errorResponse(res, 'Invalid signature', 400);
     }
 
-    const event = JSON.parse(rawBody);
+    let event: any;
+    try {
+      event = JSON.parse(rawBody);
+    } catch {
+      logger.warn('[Billing Webhook] Malformed JSON body');
+      return errorResponse(res, 'Invalid request body', 400);
+    }
     await BillingService.handleSubscriptionWebhook(event);
 
     successResponse(res, { success: true });

@@ -18,6 +18,7 @@ if (import.meta.env.PROD && API_URL.includes('localhost')) {
 export const api = axios.create({
   baseURL: API_URL,
   withCredentials: true, // Phase 2: Secure Cookie Support
+  timeout: 30000,
 });
 
 // Phase 2: CSRF Token — cached per page load

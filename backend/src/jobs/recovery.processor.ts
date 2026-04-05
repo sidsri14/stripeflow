@@ -32,7 +32,13 @@ export async function processRecoveryJob(job: Job<RecoveryJobData>): Promise<voi
     return;
   }
 
-  // 2. Advisory Lock
+  // 2. Plan-based Guard (only starter/pro processed)
+  if (payment.user.plan === 'free') {
+    logger.info({ failedPaymentId, userId: payment.userId }, 'Skipping recovery for Free plan user');
+    return;
+  }
+
+  // 3. Advisory Lock
   await prisma.failedPayment.update({
     where: { id: failedPaymentId },
     data: { lockedAt: new Date(), status: 'retrying' }
@@ -69,14 +75,24 @@ export async function processRecoveryJob(job: Job<RecoveryJobData>): Promise<voi
       throw new Error('Recovery link generation failed');
     }
 
-    // Store link in DB with 7-day expiration
-    await prisma.recoveryLink.create({
-      data: {
-        failedPaymentId,
-        url: link,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      }
+    // Store link in DB with 7-day expiration — idempotency guard prevents duplicate
+    // rows if BullMQ retries this job after email send fails.
+    const existingLink = await prisma.recoveryLink.findFirst({
+      where: { failedPaymentId },
+      orderBy: { createdAt: 'desc' },
     });
+    if (existingLink) {
+      link = existingLink.url; // reuse existing link so email sends the correct URL
+      logger.info({ failedPaymentId }, 'Reusing existing recovery link on job retry');
+    } else {
+      await prisma.recoveryLink.create({
+        data: {
+          failedPaymentId,
+          url: link,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        }
+      });
+    }
 
     // 4. Send Email (Initial or Reminder)
     await EmailService.sendRecoveryEmail(payment, link, payment.retryCount);

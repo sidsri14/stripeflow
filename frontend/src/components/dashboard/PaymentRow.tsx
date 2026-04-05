@@ -19,8 +19,8 @@ interface PaymentRowProps {
   onView: (id: string) => void;
 }
 
-export const PaymentRow: React.FC<PaymentRowProps> = ({ 
-  payment, isPaid, onRetry, onUpgrade, onView 
+export const PaymentRow: React.FC<PaymentRowProps> = React.memo(({
+  payment, isPaid, onRetry, onUpgrade, onView
 }) => {
   return (
     <motion.li
@@ -95,4 +95,4 @@ export const PaymentRow: React.FC<PaymentRowProps> = ({
       </div>
     </motion.li>
   );
-};
+});

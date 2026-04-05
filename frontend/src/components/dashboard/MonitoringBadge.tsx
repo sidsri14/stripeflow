@@ -1,11 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
 export const MonitoringBadge: React.FC<{ lastFetchedAt: Date | null; isFetching: boolean }> = ({ lastFetchedAt, isFetching }) => {
-  const [, forceUpdate] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => forceUpdate(n => n + 1), 30000);
-    return () => clearInterval(id);
-  }, []);
   const minutesAgo = lastFetchedAt ? Math.floor((Date.now() - lastFetchedAt.getTime()) / 60000) : null;
   const label = isFetching ? 'Checking...' : minutesAgo === null ? 'Starting...' : minutesAgo === 0 ? 'Just now' : `${minutesAgo}m ago`;
   return (

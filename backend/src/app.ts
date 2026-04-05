@@ -40,7 +40,7 @@ app.use(helmet({
   },
 }));
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
+  origin: process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || ['http://localhost:5173'],
   credentials: true
 }));
 app.use(morgan('dev'));
@@ -70,7 +70,7 @@ app.use('/api/', globalLimiter);
 // CSRF Token — issues a non-HttpOnly cookie that the frontend echoes back
 // as x-csrf-token on every state-changing request (double-submit pattern).
 // Validated in csrf.middleware.ts, applied per-route.
-app.get('/api/csrf-token', (req, res) => {
+app.get('/api/csrf-token', (_req, res) => {
   const token = crypto.randomBytes(32).toString('hex');
   res.cookie('csrf-token', token, {
     httpOnly: false,
@@ -123,12 +123,12 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/sources', sourceRoutes);
 
 // Error Handling
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   console.error('[Error Handler]', err);
   const status = err.status || 500;
   res.status(status).json({
     error: err.message || 'Internal Server Error',
-    requestId: _req.headers['x-request-id']
+    requestId: req.headers['x-request-id']
   });
 });
 

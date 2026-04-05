@@ -50,7 +50,7 @@ const Dashboard: React.FC = () => {
   const { upgradeMutation, retryMutation, simulateFailureMutation } = mutations;
 
   const payments = paymentsPage?.payments ?? [];
-  const totalPages = paymentsPage?.totalPages ?? 1;
+  const totalPages = paymentsPage?.pages ?? 1;
 
   // Derived logic
   const lostAmount = (stats?.totalFailedAmount ?? 0) - (stats?.totalRecoveredAmount ?? 0);

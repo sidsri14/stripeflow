@@ -73,7 +73,9 @@ const handleFail = async (srcId: string, uId: string, ev: any) => {
         data: { userId: uId, paymentId: p.id, orderId: p.order_id, amount: p.amount, currency: p.currency || 'INR', customerEmail: p.email, customerPhone: p.contact, customerName: p.notes?.name, metadata: JSON.stringify(p), eventId: pEvent.id, nextRetryAt: new Date() },
       });
       // Fire-and-forget: enqueue outside transaction so the webhook response isn't blocked
-      void enqueueRecoveryJob(fp.id).catch(() => {});
+      void enqueueRecoveryJob(fp.id).catch((err) =>
+        logger.error({ failedPaymentId: fp.id, err }, 'Job enqueue failed — Redis may be down')
+      );
     }
   });
 
