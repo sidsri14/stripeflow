@@ -30,7 +30,7 @@ const ConnectForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['sources'] });
       onClose();
     },
-    onError: () => toast.error('Failed to connect account'),
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to connect account'),
   });
 
   const testMutation = useMutation({

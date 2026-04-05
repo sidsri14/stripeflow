@@ -58,7 +58,7 @@ export const billingWebhook = async (req: any, res: Response, next: NextFunction
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
     if (typeof sig !== 'string' || !webhookSecret) {
-      console.error('[Billing Webhook] Missing signature or secret');
+      logger.warn('[Billing Webhook] Missing signature or webhook secret not configured');
       return errorResponse(res, 'Invalid signature', 400);
     }
 

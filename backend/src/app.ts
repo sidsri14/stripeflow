@@ -126,8 +126,11 @@ app.use('/api/sources', sourceRoutes);
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   console.error('[Error Handler]', err);
   const status = err.status || 500;
+  // Never expose internal error details on 5xx — only log them server-side
+  const message = status < 500 ? (err.message || 'Bad Request') : 'Internal Server Error';
   res.status(status).json({
-    error: err.message || 'Internal Server Error',
+    success: false,
+    error: message,
     requestId: req.headers['x-request-id']
   });
 });

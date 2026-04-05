@@ -11,6 +11,7 @@ const VerifyEmail = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
   useEffect(() => {
+    let redirectTimer: ReturnType<typeof setTimeout>;
     const verify = async () => {
       if (!token) {
         setStatus('error');
@@ -20,13 +21,14 @@ const VerifyEmail = () => {
         await api.post('/auth/verify-email', { token });
         setStatus('success');
         toast.success('Email verified successfully!');
-        setTimeout(() => navigate('/'), 3000);
+        redirectTimer = setTimeout(() => navigate('/'), 3000);
       } catch (err) {
         setStatus('error');
         toast.error('Verification failed');
       }
     };
     verify();
+    return () => clearTimeout(redirectTimer);
   }, [token, navigate]);
 
   return (

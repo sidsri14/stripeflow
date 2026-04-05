@@ -46,7 +46,9 @@ export class BillingService {
    * Processes Razorpay subscription webhooks to keep local records and plan levels in sync.
    */
   static async handleSubscriptionWebhook(event: any) {
-    const sub = event.payload.subscription.entity;
+    const sub = event?.payload?.subscription?.entity;
+    if (!sub?.id) return; // Not a subscription event or malformed payload
+
     const razorpaySubId = sub.id;
 
     const existing = await prisma.subscription.findUnique({

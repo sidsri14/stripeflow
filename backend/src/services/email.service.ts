@@ -174,7 +174,6 @@ Your spot is still saved. Takes less than a minute.`;
 };
 
 // ── Email 3: Password reset ───────────────────────────────────────────────────
-// TODO: Implement when password reset endpoint is added (#14)
 
 export const sendPasswordResetEmail = async (
   to: string,
@@ -197,7 +196,6 @@ Powered by PayRecover`;
 };
 
 // ── Email 4: Email verification ───────────────────────────────────────────────
-// TODO: Implement when email verification is added (#15)
 
 export const sendEmailVerificationEmail = async (
   to: string,

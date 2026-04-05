@@ -45,7 +45,7 @@ export const loginUser = async (data: any) => {
 
   const token = generateToken(user.id);
   await logAuditAction(user.id, 'USER_LOGIN', 'User', user.id);
-  return { user: { id: user.id, email: user.email }, token };
+  return { user: { id: user.id, email: user.email, name: user.name }, token };
 };
 
 export const verifyUserEmail = async (token: string) => {

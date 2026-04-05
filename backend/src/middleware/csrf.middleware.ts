@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 
 /**
@@ -8,12 +9,19 @@ import type { Request, Response, NextFunction } from 'express';
  *
  * Combined with SameSite=Strict cookies (the auth JWT), this provides two
  * independent layers of CSRF protection.
+ *
+ * Uses timingSafeEqual to prevent timing-based token enumeration.
  */
 export const csrfCheck = (req: Request, res: Response, next: NextFunction): void => {
   const cookieToken = req.cookies?.['csrf-token'];
-  const headerToken = req.headers['x-csrf-token'];
+  const headerToken = String(req.headers['x-csrf-token'] ?? '');
 
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+  const valid = cookieToken &&
+    headerToken.length > 0 &&
+    cookieToken.length === headerToken.length &&
+    crypto.timingSafeEqual(Buffer.from(cookieToken), Buffer.from(headerToken));
+
+  if (!valid) {
     res.status(403).json({ success: false, error: 'Invalid CSRF token' });
     return;
   }

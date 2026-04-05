@@ -38,7 +38,9 @@ export const handleRazorpayWebhook = async (req: Request, res: Response) => {
   );
 
   if (!isValid) {
-    logger.warn({ sourceId, paymentId: JSON.parse(rawBody).payload?.payment?.entity?.id }, 'Webhook rejected: Invalid signature');
+    let paymentId: string | undefined;
+    try { paymentId = JSON.parse(rawBody).payload?.payment?.entity?.id; } catch { /* malformed body */ }
+    logger.warn({ sourceId, paymentId }, 'Webhook rejected: Invalid signature');
     return res.status(400).json({ error: 'Invalid signature' });
   }
 
