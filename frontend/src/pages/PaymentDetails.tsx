@@ -3,14 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Copy, CheckCircle2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '../utils/cn';
+import { formatAmount, formatDate, daysSince } from '../utils/format';
+import { StatusBadge } from '../components/dashboard/Badges';
 
 interface Reminder {
   id: string;
@@ -44,31 +41,6 @@ interface FailedPayment {
   createdAt: string;
   reminders: Reminder[];
 }
-
-const formatAmount = (paise: number, currency: string) => {
-  const symbol = currency === 'INR' ? '₹' : currency + ' ';
-  return `${symbol}${(paise / 100).toLocaleString('en-IN')}`;
-};
-
-const daysSince = (dateStr: string) =>
-  Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
-
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-
-const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  const styles: Record<string, string> = {
-    pending:   'bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800',
-    retrying:  'bg-blue-500/10 text-blue-600 border-blue-200 dark:border-blue-800',
-    recovered: 'bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800',
-    abandoned: 'bg-stone-500/10 text-stone-500 border-stone-200 dark:border-stone-700',
-  };
-  return (
-    <span className={cn('px-3 py-1 rounded-full text-xs font-bold uppercase border', styles[status] || styles.pending)}>
-      {status}
-    </span>
-  );
-};
 
 const MetricCard: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <div className="border border-warm-border dark:border-stone-700 rounded-xl p-5 bg-white dark:bg-stone-800 shadow-soft">

@@ -54,13 +54,6 @@ export class RazorpayService {
   }
 
   /**
-   * Fetches full details for a specific payment.
-   */
-  static async getPaymentStatus(paymentId: string) {
-    return razorpay.payments.fetch(paymentId);
-  }
-
-  /**
    * Creates a new Razorpay subscription for the platform.
    * This is used for 'PayRecover Starter' and 'PayRecover Pro' billing.
    */

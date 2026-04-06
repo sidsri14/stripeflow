@@ -25,7 +25,9 @@ export const api = axios.create({
 let csrfToken: string | null = null;
 const getCsrfToken = async (): Promise<string> => {
   if (!csrfToken) {
-    const { data } = await axios.get(`${API_URL.replace('/api', '')}/api/csrf-token`, { withCredentials: true });
+    // API_URL is .../api, backend CSRF endpoint is .../api/csrf-token.
+    // Use the absolute URL to avoid any interceptor loops or relative path confusion.
+    const { data } = await axios.get(`${API_URL}/csrf-token`, { withCredentials: true });
     csrfToken = data.token;
   }
   return csrfToken!;
@@ -62,9 +64,12 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
-    // On CSRF failure, clear the cached token so next request fetches fresh
-    if (error.response?.status === 403) {
+    // On CSRF failure, clear cached token. 
+    // If it's a first-time failure, retry the original request once after fetching a fresh token.
+    if (error.response?.status === 403 && !error.config._retry) {
       csrfToken = null;
+      error.config._retry = true;
+      return api(error.config);
     }
     return Promise.reject(error);
   }

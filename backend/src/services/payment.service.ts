@@ -67,63 +67,6 @@ export const markPaymentRecovered = async (failedPaymentId: string, userId: stri
   await logAuditAction(userId, 'PAYMENT_RECOVERED', 'FailedPayment', failedPaymentId, { via });
 };
 
-export const markPaymentAbandoned = async (failedPaymentId: string, userId: string) => {
-  await prisma.failedPayment.update({ where: { id: failedPaymentId }, data: { status: 'abandoned' } });
-  await logAuditAction(userId, 'PAYMENT_ABANDONED', 'FailedPayment', failedPaymentId);
-};
-
-/** Optimized background processing: Fetches up to 20 payments ready for retry. */
-export const getPendingRetries = async (): Promise<FailedPaymentWithLinks[]> => {
-  const lockExpiry = new Date(Date.now() - 30 * 60 * 1000);
-  const now = new Date();
-
-  const candidates = await prisma.failedPayment.findMany({
-    where: {
-      status: { in: ['pending', 'retrying'] },
-      retryCount: { lt: 3 },
-      nextRetryAt: { lte: now },
-      user: { plan: { in: ['starter', 'pro'] } },
-      OR: [{ lockedAt: null }, { lockedAt: { lt: lockExpiry } }],
-    },
-    select: { id: true },
-    take: 20,
-  });
-
-  if (!candidates.length) return [];
-  const ids = candidates.map(c => c.id);
-
-  await prisma.failedPayment.updateMany({ where: { id: { in: ids } }, data: { lockedAt: now } });
-  return (await prisma.failedPayment.findMany({
-    where: { id: { in: ids }, lockedAt: now },
-    include: { recoveryLinks: { orderBy: { createdAt: 'desc' }, take: 1 } },
-  })) as FailedPaymentWithLinks[];
-};
-
-export const releasePaymentLock = (id: string) => 
-  prisma.failedPayment.update({ where: { id }, data: { lockedAt: null } });
-
-export const recordRetryReminder = async (id: string, dayOffset: number, type: string) => {
-  const p = await prisma.failedPayment.findUnique({ where: { id }, select: { retryCount: true } });
-  const count = (p?.retryCount ?? 0) + 1;
-  const delay = RETRY_DELAYS_MS[p?.retryCount ?? 0] ?? null;
-
-  await prisma.$transaction([
-    prisma.reminder.create({ data: { failedPaymentId: id, dayOffset, type, status: 'sent' } }),
-    prisma.failedPayment.update({
-      where: { id },
-      data: { 
-        retryCount: count, lastRetryAt: new Date(), 
-        nextRetryAt: delay ? new Date(Date.now() + (delay as number)) : null,
-        status: 'retrying', lockedAt: null 
-      },
-    }),
-  ]);
-  return count;
-};
-
-export const createRecoveryLinkRecord = (failedPaymentId: string, url: string) =>
-  prisma.recoveryLink.create({ data: { failedPaymentId, url } });
-
 export const triggerManualRetry = async (userId: string, id: string) => {
   const p = await prisma.failedPayment.findFirst({ where: { id, userId } });
   if (!p) throw { status: 404, message: 'Payment not found' };

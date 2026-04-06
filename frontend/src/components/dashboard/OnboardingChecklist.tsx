@@ -1,11 +1,6 @@
 import React from 'react';
 import { Zap, CheckCircle2, ChevronRight, RefreshCw, Sparkles } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from '../../utils/cn';
 
 interface OnboardingProps {
   hasSources: boolean;

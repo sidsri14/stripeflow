@@ -3,13 +3,7 @@ import { motion } from 'framer-motion';
 import { ExternalLink, RotateCcw, Lock } from 'lucide-react';
 import { StatusBadge } from './Badges';
 
-const formatAmount = (paise: number, currency = 'INR') => {
-  const symbol = currency === 'INR' ? '₹' : currency + ' ';
-  return `${symbol}${(paise / 100).toLocaleString('en-IN')}`;
-};
-
-const daysSince = (d: string) =>
-  Math.floor((Date.now() - new Date(d).getTime()) / (1000 * 60 * 60 * 24));
+import { formatAmount, daysSince } from '../../utils/format';
 
 interface PaymentRowProps {
   payment: any;

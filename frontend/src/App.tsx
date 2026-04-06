@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
-import { Moon, Sun, LogOut, TrendingUp, Link2, Loader2, Settings as SettingsIcon } from 'lucide-react';
+import { Moon, Sun, LogOut, TrendingUp, Link2, Loader2, Settings as SettingsIcon, Menu, X } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { api } from './api';
 
@@ -55,6 +55,78 @@ const ThemeToggle = () => {
   );
 };
 
+const MobileNav = ({ user, onLogout }: { user: AuthUser; onLogout: () => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const menuItems = [
+    { label: 'Dashboard', icon: TrendingUp, path: '/dashboard' },
+    { label: 'Sources', icon: Link2, path: '/sources' },
+    { label: 'Settings', icon: SettingsIcon, path: '/settings' },
+  ];
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="p-2.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-500 dark:text-stone-400"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {isOpen && (
+        <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-sm md:hidden animate-in fade-in duration-200">
+          <div className="fixed inset-y-0 right-0 w-72 bg-white dark:bg-stone-900 shadow-2xl border-l border-warm-border dark:border-stone-800 p-6 flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex flex-col text-left">
+                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest leading-none mb-1">Account</span>
+                <span className="text-sm font-bold text-stone-800 dark:text-stone-100 truncate max-w-[180px]">
+                   {user.name || user.email}
+                </span>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-500"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <nav className="flex-1 space-y-2">
+              {menuItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    navigate(item.path);
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center gap-3 w-full p-4 rounded-2xl hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-all text-stone-600 dark:text-stone-300 font-bold text-sm text-left"
+                >
+                  <item.icon className="w-5 h-5 text-emerald-500" />
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+
+            <div className="pt-6 border-t border-warm-border dark:border-stone-800">
+              <button
+                onClick={() => {
+                  onLogout();
+                  setIsOpen(false);
+                }}
+                className="flex items-center gap-3 w-full p-4 rounded-2xl bg-rose-50 dark:bg-rose-900/10 text-rose-600 dark:text-rose-400 font-bold text-sm transition-all"
+              >
+                <LogOut className="w-5 h-5" />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
 type LayoutProps = {
   user: AuthUser;
   onLogout: () => void;
@@ -67,41 +139,46 @@ const Layout: React.FC<React.PropsWithChildren<LayoutProps>> = ({ children, user
     <header className="sticky top-0 z-50 p-4 border-b border-warm-border dark:border-stone-800 bg-white/90 dark:bg-stone-900/90 backdrop-blur-md transition-all">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate('/')}>
-          <div className="bg-emerald-600 dark:bg-emerald-700 p-2.5 rounded-xl group-hover:bg-emerald-500 dark:group-hover:bg-emerald-600 transition-colors">
+          <div className="bg-emerald-600 dark:bg-emerald-700 p-2.5 rounded-xl group-hover:bg-emerald-500 dark:group-hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/10">
             <TrendingUp className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-xl tracking-tight text-stone-800 dark:text-stone-100">
+          <span className="font-bold text-xl tracking-tight text-stone-800 dark:text-stone-100 hidden sm:block">
             PayRecover
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/sources')}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 font-medium text-sm border border-transparent hover:border-warm-border dark:hover:border-stone-700"
-          >
-            <Link2 className="w-4 h-4" /> Sources
-          </button>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <nav className="hidden md:flex items-center gap-4">
+            <button
+              onClick={() => navigate('/sources')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 font-medium text-sm border border-transparent hover:border-warm-border dark:hover:border-stone-700"
+            >
+              <Link2 className="w-4 h-4" /> Sources
+            </button>
 
-          <button
-            onClick={() => navigate('/settings')}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 font-medium text-sm border border-transparent hover:border-warm-border dark:hover:border-stone-700"
-          >
-            <SettingsIcon className="w-4 h-4" /> Settings
-          </button>
+            <button
+              onClick={() => navigate('/settings')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 font-medium text-sm border border-transparent hover:border-warm-border dark:hover:border-stone-700"
+            >
+              <SettingsIcon className="w-4 h-4" /> Settings
+            </button>
+          </nav>
 
-          <div className="hidden sm:flex flex-col items-end">
+          <div className="hidden md:flex flex-col items-end">
             <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider">Signed in as</span>
             <span className="text-sm font-semibold text-stone-700 dark:text-stone-200">{user.name || user.email}</span>
           </div>
 
-          <div className="h-4 w-[1px] bg-warm-border dark:bg-stone-700 hidden sm:block" />
+          <div className="h-4 w-[1px] bg-warm-border dark:bg-stone-700 hidden md:block" />
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            <div className="md:hidden">
+              <MobileNav user={user} onLogout={onLogout} />
+            </div>
             <button
               onClick={onLogout}
-              className="px-3 py-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 font-medium text-sm"
+              className="hidden sm:flex px-3 py-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 font-medium text-sm"
             >
               <LogOut className="w-4 h-4 mr-1.5 inline-block" />
               Sign Out

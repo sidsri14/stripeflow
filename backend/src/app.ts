@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import crypto from 'crypto';
 import express from 'express';
+import pino from 'pino';
+
+const logger = pino({ transport: { target: 'pino-pretty', options: { colorize: true } } });
 import type { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -124,7 +127,7 @@ app.use('/api/sources', sourceRoutes);
 
 // Error Handling
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-  console.error('[Error Handler]', err);
+  logger.error({ err, requestId: req.headers['x-request-id'] }, 'Unhandled error');
   const status = err.status || 500;
   // Never expose internal error details on 5xx — only log them server-side
   const message = status < 500 ? (err.message || 'Bad Request') : 'Internal Server Error';

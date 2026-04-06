@@ -2,8 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, RefreshCw, IndianRupee, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '../utils/cn';
+import { formatAmount } from '../utils/format';
 
 // ── Sub-components
 import { PlanBadge } from '../components/dashboard/Badges';
@@ -13,15 +13,6 @@ import { OnboardingChecklist } from '../components/dashboard/OnboardingChecklist
 import { DashboardStats } from '../components/dashboard/DashboardStats';
 import { PaymentRow } from '../components/dashboard/PaymentRow';
 import { useDashboardData } from '../components/dashboard/useDashboardData';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-const formatAmount = (paise: number, currency = 'INR') => {
-  const symbol = currency === 'INR' ? '₹' : currency + ' ';
-  return `${symbol}${(paise / 100).toLocaleString('en-IN')}`;
-};
 
 // ── Skeletons
 const SkeletonCard = () => (

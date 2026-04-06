@@ -29,9 +29,6 @@ export const getPaymentLink = async (keyId: string, keySecret: string, data: any
   }
 };
 
-export const verifyRazorpayWebhook = (body: string, sig: string, secret: string) =>
-  Razorpay.validateWebhookSignature(body, sig, secret);
-
 export const validateRazorpayCredentials = async (keyId: string, keySecret: string) => {
   try {
     const rzp = getRazorpayInstance(keyId, keySecret);

@@ -19,6 +19,7 @@ const PASSWORD_RULES = [
 ];
 
 const Register: React.FC<Props> = ({ onRegisterSuccess }) => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordTouched, setPasswordTouched] = useState(false);
@@ -40,7 +41,7 @@ const Register: React.FC<Props> = ({ onRegisterSuccess }) => {
     setLoading(true);
 
     try {
-      const { data } = await api.post('/auth/register', { email, password });
+      const { data } = await api.post('/auth/register', { name, email, password });
       if (data.success) {
         toast.success('Account created — welcome!');
         // The backend sets an httpOnly auth cookie on registration.
@@ -83,6 +84,23 @@ const Register: React.FC<Props> = ({ onRegisterSuccess }) => {
           )}
 
           <form onSubmit={handleRegister} className="space-y-5" noValidate>
+            <div className="space-y-1.5">
+              <label htmlFor="reg-name" className="text-xs font-semibold uppercase tracking-wider text-stone-400 ml-1">Full Name</label>
+              <div className="relative">
+                <ShieldPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300" aria-hidden="true" />
+                <input
+                  id="reg-name"
+                  type="text"
+                  autoComplete="name"
+                  className="w-full pl-12 pr-4 py-3 rounded-xl border border-warm-border dark:border-stone-600 bg-cream dark:bg-stone-700 text-sm font-medium placeholder:text-stone-300 dark:placeholder:text-stone-500 outline-none focus:border-stone-400 dark:focus:border-stone-500 transition-all text-stone-700 dark:text-stone-200"
+                  placeholder="Your Name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <label htmlFor="reg-email" className="text-xs font-semibold uppercase tracking-wider text-stone-400 ml-1">Email</label>
               <div className="relative">

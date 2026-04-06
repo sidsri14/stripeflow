@@ -1,17 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, RotateCcw, CheckCircle2, IndianRupee } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-const formatAmount = (paise: number, currency = 'INR') => {
-  const symbol = currency === 'INR' ? '₹' : currency + ' ';
-  return `${symbol}${(paise / 100).toLocaleString('en-IN')}`;
-};
+import { cn } from '../../utils/cn';
+import { formatAmount } from '../../utils/format';
 
 interface DashboardStatsProps {
   stats: {
