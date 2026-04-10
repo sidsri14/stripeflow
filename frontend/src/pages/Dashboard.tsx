@@ -1,4 +1,5 @@
-import React, { FC, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Search, RefreshCw, IndianRupee, AlertTriangle } from 'lucide-react';
@@ -234,7 +235,16 @@ const Dashboard: FC<{ user: AuthUser }> = ({ user }) => {
           ) : (
             <ul className="divide-y divide-indigo-500/5 dark:divide-white/5" aria-label="Failed payment list">
               <AnimatePresence mode="popLayout">
-                {payments.map((payment: { id: string; status: string }) => (
+                {payments.map((payment: { 
+                  id: string; 
+                  status: string; 
+                  customerName?: string; 
+                  customerEmail: string; 
+                  amount: number; 
+                  currency: string; 
+                  retryCount: number; 
+                  createdAt: string 
+                }) => (
                   <PaymentRow
                     key={payment.id}
                     payment={payment}

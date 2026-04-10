@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
+import type { AuthUser } from '../../App';
 
 export const PAGE_SIZE = 10;
 
@@ -26,7 +27,7 @@ export function useDashboardData(currentUser: AuthUser | null) {
   const plan = currentUser?.plan || 'free';
 
   // ── Stats
-  const { data: stats, isFetching: statsFetching } = useQuery({
+  const { data: statsData, isFetching: statsFetching } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
       const { data } = await api.get('/dashboard/stats');

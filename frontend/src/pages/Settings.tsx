@@ -1,4 +1,5 @@
-import React, { useState, FC, FormEvent } from 'react';
+import { useState } from 'react';
+import type { FC, FormEvent } from 'react';
 import { Shield, CreditCard, Check, Zap, User, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../api';

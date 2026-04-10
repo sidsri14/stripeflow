@@ -1,4 +1,5 @@
-import React, { useState, FC, FormEvent } from 'react';
+import { useState } from 'react';
+import type { FC, FormEvent } from 'react';
 import { Plus, Trash2, Zap, Copy, ExternalLink, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
