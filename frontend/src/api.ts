@@ -1,4 +1,12 @@
 import axios from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
+
+/**
+ * Extension of Axios config to support internal retry logic (e.g. for CSRF rotation)
+ */
+interface InternalAxiosRequestConfigWithRetry extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
 
 const getDefaultApiUrl = () => {
   if (import.meta.env.PROD) return '/api';
@@ -66,10 +74,13 @@ api.interceptors.response.use(
     }
     // On CSRF failure, clear cached token. 
     // If it's a first-time failure, retry the original request once after fetching a fresh token.
-    if (error.response?.status === 403 && !error.config._retry) {
-      csrfToken = null;
-      error.config._retry = true;
-      return api(error.config);
+    if (error.response?.status === 403) {
+      const config = error.config as InternalAxiosRequestConfigWithRetry;
+      if (config && !config._retry) {
+        csrfToken = null;
+        config._retry = true;
+        return api(config);
+      }
     }
     return Promise.reject(error);
   }

@@ -6,7 +6,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
  * Simulate an Axios response error with the given HTTP status.
  */
 function makeAxiosError(status: number) {
-  const err: any = new Error(`Request failed with status ${status}`);
+  const err = new Error(`Request failed with status ${status}`) as Error & { response: { status: number; data: { error: string } } };
   err.response = { status, data: { error: 'test' } };
   return err;
 }
@@ -62,7 +62,7 @@ describe('API response interceptor logic', () => {
   /**
    * Mirrors the logic in api.ts's response error interceptor.
    */
-  function handleResponseError(error: any, clearCsrfToken: () => void): Promise<never> {
+  function handleResponseError(error: { response?: { status: number } }, clearCsrfToken: () => void): Promise<never> {
     if (error.response?.status === 403) {
       clearCsrfToken();
     }

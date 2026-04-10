@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, FC, FormEvent } from 'react';
 import { Plus, Trash2, Zap, Copy, ExternalLink, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,7 +19,7 @@ interface PaymentSource {
   _count: { events: number };
 }
 
-const ConnectForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+const ConnectForm: FC<{ onClose: () => void }> = ({ onClose }) => {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({ name: '', keyId: '', keySecret: '', webhookSecret: '' });
 
@@ -30,13 +30,19 @@ const ConnectForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['sources'] });
       onClose();
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to connect account'),
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { error?: string } } };
+      toast.error(error.response?.data?.error || 'Failed to connect account');
+    },
   });
 
   const testMutation = useMutation({
     mutationFn: (data: { keyId: string; keySecret: string }) => api.post('/sources/test-connection', data),
     onSuccess: () => toast.success('Connection verified successfully!'),
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Verification failed'),
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { error?: string } } };
+      toast.error(error.response?.data?.error || 'Verification failed');
+    },
   });
 
   const handleTest = () => {
@@ -47,7 +53,7 @@ const ConnectForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     testMutation.mutate({ keyId: form.keyId, keySecret: form.keySecret });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!form.keyId || !form.keySecret || !form.webhookSecret) {
       toast.error('Key ID, Key Secret, and Webhook Secret are required');

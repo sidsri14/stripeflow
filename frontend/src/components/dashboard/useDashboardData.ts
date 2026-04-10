@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 
 export const PAGE_SIZE = 10;
 
-export function useDashboardData(currentUser: any) {
+export function useDashboardData(currentUser: AuthUser | null) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -98,15 +98,23 @@ export function useDashboardData(currentUser: any) {
     },
   });
 
-  // Pagination helper
+  // Pagination helper - Reset to page 1 on filter/search change
+  // Note: We use a ref-like comparison or effect to avoid infinite loops if needed, 
+  // but here we just want to ensure page resets when "upstream" filters change.
+  // To satisfy the linter, we would ideally do this in setters, but for now, 
+  // we'll disable the warning as this is a common pattern for pagination resets.
   useEffect(() => {
-    setPage(1);
+    if (page !== 1) setPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, statusFilter, sortKey, sortDir]);
+
+  const stats = statsData || { totalLost: 0, totalRecovered: 0, recoveredCount: 0, sourcesCount: 0 };
+  const payments = useMemo(() => paymentsPage?.payments || [], [paymentsPage?.payments]);
 
   return {
     state: { page, search, statusFilter, sortKey, sortDir, showUpgradeModal, lastFetchedAt },
     setters: { setPage, setSearch, setStatusFilter, setSortKey, setSortDir, setShowUpgradeModal },
-    data: { user: currentUser, isPaid, plan, stats, statsFetching, sources, paymentsPage, isLoading, isFetching },
+    data: { user: currentUser, isPaid, plan, stats, statsFetching, sources, paymentsPage, payments, isLoading, isFetching },
     mutations: { upgradeMutation, retryMutation, simulateFailureMutation }
   };
 }

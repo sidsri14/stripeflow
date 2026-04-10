@@ -22,7 +22,7 @@ const VerifyEmail = () => {
         setStatus('success');
         toast.success('Email verified successfully!');
         redirectTimer = setTimeout(() => navigate('/'), 3000);
-      } catch (err) {
+      } catch {
         setStatus('error');
         toast.error('Verification failed');
       }

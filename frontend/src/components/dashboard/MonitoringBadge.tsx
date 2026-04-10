@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 export const MonitoringBadge: React.FC<{ lastFetchedAt: Date | null; isFetching: boolean }> = ({ lastFetchedAt, isFetching }) => {
-  const minutesAgo = lastFetchedAt ? Math.floor((Date.now() - lastFetchedAt.getTime()) / 60000) : null;
+  const [now, setNow] = React.useState(() => Date.now());
+  
+  React.useEffect(() => {
+    if (!lastFetchedAt || isFetching) return;
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, [lastFetchedAt, isFetching]);
+
+  const minutesAgo = useMemo(() => {
+    if (!lastFetchedAt) return null;
+    return Math.floor((now - lastFetchedAt.getTime()) / 60000);
+  }, [lastFetchedAt, now]);
   const label = isFetching ? 'Checking...' : minutesAgo === null ? 'Starting...' : minutesAgo === 0 ? 'Just now' : `${minutesAgo}m ago`;
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">

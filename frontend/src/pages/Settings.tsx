@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, FC, FormEvent } from 'react';
 import { Shield, CreditCard, Check, Zap, User, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../api';
@@ -10,7 +10,7 @@ interface Props {
   onUpdateUser: (user: AuthUser) => void;
 }
 
-const Settings: React.FC<Props> = ({ user, onUpdateUser }) => {
+const Settings: FC<Props> = ({ user, onUpdateUser }) => {
   const [loading, setLoading] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: user.name || '', email: user.email });
   const [securityForm, setSecurityForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
@@ -25,14 +25,15 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser }) => {
         toast.success(`Plan updated to ${plan === 'free' ? 'Free' : 'Pro'}`);
         onUpdateUser(data.data.user);
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to update plan');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      toast.error(error.response?.data?.error || 'Failed to update plan');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: FormEvent) => {
     e.preventDefault();
     setProfileLoading(true);
     try {
@@ -41,14 +42,15 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser }) => {
         toast.success('Profile updated successfully');
         onUpdateUser(data.data.user);
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to update profile');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      toast.error(error.response?.data?.error || 'Failed to update profile');
     } finally {
       setProfileLoading(false);
     }
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: FormEvent) => {
     e.preventDefault();
     if (securityForm.newPassword !== securityForm.confirmPassword) {
       return toast.error('New passwords do not match');
@@ -63,8 +65,9 @@ const Settings: React.FC<Props> = ({ user, onUpdateUser }) => {
         toast.success('Password updated successfully');
         setSecurityForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to update password');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      toast.error(error.response?.data?.error || 'Failed to update password');
     } finally {
       setSecurityLoading(false);
     }

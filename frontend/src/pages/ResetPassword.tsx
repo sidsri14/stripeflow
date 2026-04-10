@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, FormEvent } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Lock, Loader2, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -12,7 +12,7 @@ const ResetPassword = () => {
   const token = searchParams.get('token');
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       return toast.error('Passwords do not match');
@@ -26,8 +26,9 @@ const ResetPassword = () => {
       await api.post('/auth/reset-password', { token, password });
       toast.success('Password reset successfully');
       navigate('/login');
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to reset password');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      toast.error(error.response?.data?.error || 'Failed to reset password');
     } finally {
       setLoading(false);
     }

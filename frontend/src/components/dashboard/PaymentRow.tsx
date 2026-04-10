@@ -6,7 +6,19 @@ import { StatusBadge } from './Badges';
 import { formatAmount, daysSince } from '../../utils/format';
 
 interface PaymentRowProps {
-  payment: any;
+  payment: {
+    id: string;
+    customerName?: string;
+    customerEmail: string;
+    amount: number;
+    currency: string;
+    status: string;
+    retryCount: number;
+    createdAt: string;
+    paymentId?: string;
+    recoveredVia?: string;
+    recoveryLinks?: { url: string }[];
+  };
   isPaid: boolean;
   onRetry: (id: string) => void;
   onUpgrade: () => void;

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { FC, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Search, RefreshCw, IndianRupee, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils/cn';
 import { formatAmount } from '../utils/format';
+import type { AuthUser } from '../App';
 
 // ── Sub-components
 import { PlanBadge } from '../components/dashboard/Badges';
@@ -32,13 +33,13 @@ const SkeletonRow = () => (
   </div>
 );
 
-const Dashboard: React.FC<{ user: any }> = ({ user }) => {
+const Dashboard: FC<{ user: AuthUser }> = ({ user }) => {
   const navigate = useNavigate();
   const { state, setters, data, mutations } = useDashboardData(user);
   const queryClient = useQueryClient();
 
   // Re-fetch everything when the window gains focus or component mounts to ensure sync.
-  React.useEffect(() => {
+  useEffect(() => {
     const handleFocus = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       queryClient.invalidateQueries({ queryKey: ['sources'] });
@@ -52,10 +53,9 @@ const Dashboard: React.FC<{ user: any }> = ({ user }) => {
 
   const { search, statusFilter, sortKey, sortDir, showUpgradeModal, lastFetchedAt, page } = state;
   const { setSearch, setStatusFilter, setSortKey, setSortDir, setShowUpgradeModal, setPage } = setters;
-  const { plan, isPaid, stats, statsFetching, sources, paymentsPage, isLoading, isFetching } = data;
+  const { plan, isPaid, stats, statsFetching, sources, paymentsPage, payments, isLoading, isFetching } = data;
   const { upgradeMutation, retryMutation, simulateFailureMutation } = mutations;
 
-  const payments = paymentsPage?.payments ?? [];
   const totalPages = paymentsPage?.pages ?? 1;
 
   // Derived logic
@@ -63,10 +63,10 @@ const Dashboard: React.FC<{ user: any }> = ({ user }) => {
   const hasUnrecovered = lostAmount > 0;
   const hasSources = sources.length > 0;
   const hasFailure = payments.length > 0;
-  const hasRecovery = payments.some((p: any) => p.status === 'recovered');
+  const hasRecovery = useMemo(() => payments.some((p: { status: string }) => p.status === 'recovered'), [payments]);
   const onboardingComplete = hasSources && hasFailure && hasRecovery;
 
-  const toggleSort = (key: any) => {
+  const toggleSort = (key: 'status' | 'amount' | 'createdAt' | 'retryCount') => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('desc'); }
   };
@@ -204,7 +204,7 @@ const Dashboard: React.FC<{ user: any }> = ({ user }) => {
 
             <div className="border border-warm-border dark:border-stone-700 p-1 rounded-xl flex items-center gap-1.5 px-3 bg-white dark:bg-stone-800" role="group" aria-label="Sort by">
               <span className="text-[10px] uppercase font-semibold text-stone-300 mr-1">Sort:</span>
-              {(['status', 'amount', 'createdAt', 'retryCount'] as any[]).map(key => (
+              {(['status', 'amount', 'createdAt', 'retryCount'] as const).map(key => (
                 <button
                   key={key}
                   onClick={() => toggleSort(key)}
@@ -234,7 +234,7 @@ const Dashboard: React.FC<{ user: any }> = ({ user }) => {
           ) : (
             <ul className="divide-y divide-indigo-500/5 dark:divide-white/5" aria-label="Failed payment list">
               <AnimatePresence mode="popLayout">
-                {payments.map((payment: any) => (
+                {payments.map((payment: { id: string; status: string }) => (
                   <PaymentRow
                     key={payment.id}
                     payment={payment}
