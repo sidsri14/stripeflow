@@ -1,7 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  // Add "linux-musl-openssl-3.0.x" if deploying to Alpine Linux (Railway, Render, etc.)
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
