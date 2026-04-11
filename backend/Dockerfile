@@ -1,7 +1,7 @@
-# Use the official Bun image (built on Debian)
+# Use the official Bun image
 FROM oven/bun:1
 
-# Install OpenSSL and other necessary system libraries for Prisma/Node native modules
+# Install OpenSSL 3.0 (required for Prisma)
 RUN apt-get update && apt-get install -y \
     openssl \
     libssl-dev \
@@ -10,22 +10,21 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy dependency files
-COPY package*.json bun.lock* ./
+# Copy dependency files using the monorepo path
+# This assumes the Build Context is the root of the repository
+COPY backend/package*.json backend/bun.lock* ./
 
-# Install dependencies (frozen-lockfile is safer for production)
+# Install dependencies
 RUN bun install
 
 # Copy the rest of the backend code
-COPY . .
+COPY backend/ .
 
 # Generate Prisma Client
 RUN bunx prisma generate
 
-# Final setup: Railway provides the PORT environment variable
+# Final setup
 ENV PORT=3000
 EXPOSE 3000
 
-# Default start command (for the API service)
-# Note: For the Worker service, override this to "bun src/worker.ts" in the Railway Dashboard
 CMD ["bun", "src/index.ts"]
