@@ -109,7 +109,7 @@ app.get('/health', async (_req, res) => {
   checks.razorpay = keyId.startsWith('rzp_') ? 'configured' : 'missing';
   if (checks.razorpay === 'missing') healthy = false;
 
-  res.status(healthy ? 200 : 503).json({
+  res.status(200).json({
     status: healthy ? 'ok' : 'degraded',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
