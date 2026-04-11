@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy dependency files
-COPY package.json bun.lock ./
+COPY package*.json bun.lock* ./
 
 # Install dependencies (frozen-lockfile is safer for production)
 RUN bun install
