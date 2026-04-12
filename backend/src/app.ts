@@ -26,7 +26,24 @@ const app = express();
 // Enable trust proxy for correct IP detection in cloud environments
 app.set('trust proxy', 1);
 
-// Security Middleware
+// 1. CORS Middleware (Must be at the very top for preflight requests)
+app.use(cors({
+  origin: (origin, callback) => {
+    const allowed = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim());
+    // Auto-allow localhost and the configured production sites
+    const whitelist = [...allowed, 'http://localhost:5173'];
+    
+    if (!origin || whitelist.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+// 2. Security Middleware
 app.use(helmet({
   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   contentSecurityPolicy: {
@@ -35,27 +52,12 @@ app.use(helmet({
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://pay-recover-web-production.up.railway.app", "https://pay-recover.vercel.app"],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       frameSrc: ["'none'"],
     },
   },
-}));
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowed = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || ['http://localhost:5173'];
-    console.log(`[CORS DEBUG] Request Origin: ${origin}`);
-    console.log(`[CORS DEBUG] Allowed Origins: ${JSON.stringify(allowed)}`);
-    
-    if (!origin || allowed.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.error(`[CORS FAIL] Origin ${origin} not in allowed list: ${JSON.stringify(allowed)}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
 }));
 app.use(morgan('dev'));
 app.use(cookieParser());
