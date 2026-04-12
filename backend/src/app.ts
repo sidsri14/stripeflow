@@ -20,32 +20,38 @@ import { billingWebhook } from './controllers/billing.controller.js';
 import { prisma } from './utils/prisma.js';
 import { redisConnection } from './jobs/recovery.queue.js';
 
+import cors from 'cors';
+
 const app = express();
+
+// Log CORS configuration on startup
+const rawAllowed = process.env.ALLOWED_ORIGINS || '';
+const parsedAllowed = rawAllowed.split(',').map(o => o.trim()).filter(Boolean);
+logger.info({ rawAllowed, parsedAllowed }, 'CORS Configuration Initialized');
 
 // Enable trust proxy for correct IP detection in cloud environments
 app.set('trust proxy', 1);
 
-// 1. CORS Middleware — explicit manual implementation; no silent failures
-const CORS_ORIGINS = new Set<string>([
-  'http://localhost:5173',
-  ...(process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean),
-]);
+// 1. CORS Middleware (Using official package for robust preflight handling)
+app.use(cors({
+  origin: (origin, callback) => {
+    // Automatically allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
 
-app.use((req: Request, res: Response, next: NextFunction) => {
-  const origin = req.headers.origin;
-  if (origin && (CORS_ORIGINS.has(origin) || origin.endsWith('.vercel.app'))) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,x-csrf-token');
-    res.setHeader('Vary', 'Origin');
-  }
-  if (req.method === 'OPTIONS') {
-    res.status(204).end();
-    return;
-  }
-  next();
-});
+    const whitelist = [...parsedAllowed, 'http://localhost:5173'];
+    const isAllowed = whitelist.includes(origin) || origin.endsWith('.vercel.app');
+    
+    // Log the match result for debugging
+    if (!isAllowed) {
+      logger.warn({ origin, whitelist }, 'CORS Blocked');
+      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+    
+    callback(null, true);
+  },
+  credentials: true,
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+}));
 
 // 2. Security Middleware
 app.use(helmet({
