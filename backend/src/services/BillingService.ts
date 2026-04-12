@@ -2,8 +2,8 @@ import { prisma } from '../utils/prisma.js';
 import { RazorpayService } from './RazorpayService.js';
 
 const PLAN_IDS = {
-  starter: process.env.RAZORPAY_STARTER_PLAN_ID!,
-  pro: process.env.RAZORPAY_PRO_PLAN_ID!,
+  starter: process.env.RAZORPAY_STARTER_PLAN_ID,
+  pro: process.env.RAZORPAY_PRO_PLAN_ID,
 } as const;
 
 /**
@@ -18,9 +18,14 @@ export class BillingService {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw { status: 404, message: 'User not found' };
 
+    const planId = PLAN_IDS[plan];
+    if (!planId) {
+      throw { status: 500, message: `Razorpay Plan ID for '${plan}' is not configured on the server.` };
+    }
+
     // Create Razorpay Subscription
     const subscription = await RazorpayService.createRazorpaySubscription({
-      plan_id: PLAN_IDS[plan],
+      plan_id: planId,
       customer_notify: 1,
       total_count: 120, // 10 years @ monthly
       notes: { userId, plan },

@@ -6,7 +6,6 @@ const port = process.env.PORT || 3000;
 const REQUIRED_ENV = [
   'JWT_SECRET', 'ENCRYPTION_KEY', 'DATABASE_URL',
   'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET',
-  'RAZORPAY_STARTER_PLAN_ID', 'RAZORPAY_PRO_PLAN_ID',
 ] as const;
 function validateEnv(): void {
   const missing = REQUIRED_ENV.filter(k => !process.env[k]);
