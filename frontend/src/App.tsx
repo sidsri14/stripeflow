@@ -26,6 +26,8 @@ export type AuthUser = {
   name?: string;
   plan: 'free' | 'starter' | 'pro';
   createdAt: string;
+  hasPassword: boolean;
+  googleLinked: boolean;
 };
 
 const PageLoader = () => (
