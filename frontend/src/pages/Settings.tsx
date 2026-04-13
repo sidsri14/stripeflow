@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { FC, FormEvent } from 'react';
 import { Shield, CreditCard, Check, Zap, User, Loader2, Link2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { api } from '../api';
+import { api, API_URL } from '../api';
 import toast from 'react-hot-toast';
 import type { AuthUser } from '../App';
 
@@ -358,7 +358,7 @@ const Settings: FC<Props> = ({ user, onUpdateUser }) => {
             </span>
           ) : (
             <button
-              onClick={() => { window.location.href = import.meta.env.VITE_API_URL + '/auth/google'; }}
+              onClick={() => { window.location.href = API_URL + '/auth/google'; }}
               className="px-4 py-2 bg-white dark:bg-stone-700 border border-warm-border dark:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-200 font-semibold text-sm rounded-xl transition-all flex items-center gap-2"
             >
               Link Google Account

@@ -17,7 +17,7 @@ const getDefaultApiUrl = () => {
 };
 
 // Get base URL from env or derive from current host in development.
-const API_URL = import.meta.env.VITE_API_URL || getDefaultApiUrl();
+export const API_URL = import.meta.env.VITE_API_URL || getDefaultApiUrl();
 
 if (import.meta.env.PROD && API_URL.includes('localhost')) {
   console.warn('⚠️ API_URL points to localhost in a production build. Check VITE_API_URL.');

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { api } from '../api';
+import { api, API_URL } from '../api';
 import toast from 'react-hot-toast';
 import { ShieldAlert, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import type { AuthUser } from '../App';
@@ -134,7 +134,7 @@ const Login: React.FC<Props> = ({ onLoginSuccess }) => {
           </div>
 
           <button
-            onClick={() => window.location.href = import.meta.env.VITE_API_URL + '/auth/google'}
+            onClick={() => window.location.href = API_URL + '/auth/google'}
             className="w-full bg-white dark:bg-stone-800 border border-warm-border dark:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
