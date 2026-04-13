@@ -4,16 +4,16 @@ import { prisma } from '../utils/prisma.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
-const CALLBACK_URL = process.env.NODE_ENV === 'production' 
+const CALLBACK_URL = process.env.NODE_ENV === 'production'
   ? 'https://api.yourdomain.com/api/auth/google/callback'
   : 'http://localhost:3000/api/auth/google/callback';
 
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
-      clientID: GOOGLE_CLIENT_ID,
-      clientSecret: GOOGLE_CLIENT_SECRET,
-      callbackURL: CALLBACK_URL,
-    },
+    clientID: GOOGLE_CLIENT_ID,
+    clientSecret: GOOGLE_CLIENT_SECRET,
+    callbackURL: CALLBACK_URL,
+  },
     async (accessToken, refreshToken, profile, done) => {
       try {
         const email = profile.emails?.[0].value;

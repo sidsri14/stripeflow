@@ -1,6 +1,9 @@
 # Worktrees
 .worktrees/
 
+# Superpowers docs (specs, plans)
+docs/
+
 # IDEs
 .vscode/
 .idea/
