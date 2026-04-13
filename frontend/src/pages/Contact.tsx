@@ -1,17 +1,28 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, ArrowLeft, Mail, User, MessageSquare, Send, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, Mail, User, MessageSquare, Send, CheckCircle2, Loader2 } from 'lucide-react';
 
 const Contact = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // UI-only: no backend submission yet
-    setSubmitted(true);
+    if (!name.trim() || !email.trim() || !message.trim()) {
+      setError('Please fill in all fields.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    // Simulated async (will be replaced with real API call)
+    setTimeout(() => {
+      setLoading(false);
+      setSubmitted(true);
+    }, 300);
   };
 
   return (
@@ -99,7 +110,7 @@ const Contact = () => {
                   </p>
                 </div>
                 <button
-                  onClick={() => { setName(''); setEmail(''); setMessage(''); setSubmitted(false); }}
+                  onClick={() => { setName(''); setEmail(''); setMessage(''); setSubmitted(false); setError(''); }}
                   className="text-xs font-bold text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 transition-colors underline underline-offset-2"
                 >
                   Send another message
@@ -108,6 +119,12 @@ const Contact = () => {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                 <h2 className="text-lg font-bold text-stone-800 dark:text-stone-100 mb-6">Send a message</h2>
+
+                {error && (
+                  <div role="alert" className="text-sm text-red-500 dark:text-red-400 font-medium pl-1">
+                    {error}
+                  </div>
+                )}
 
                 {/* Name */}
                 <div className="space-y-1.5">
@@ -167,10 +184,17 @@ const Contact = () => {
 
                 <button
                   type="submit"
-                  className="w-full bg-stone-700 hover:bg-stone-600 dark:bg-stone-600 dark:hover:bg-stone-500 text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-2"
+                  disabled={loading}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
                 >
-                  <Send className="w-4 h-4" />
-                  Send Message
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Send Message
+                    </>
+                  )}
                 </button>
               </form>
             )}
