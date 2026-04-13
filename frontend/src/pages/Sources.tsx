@@ -367,5 +367,3 @@ const Sources: FC = () => {
 };
 
 export default Sources;
-
-export default Sources;
