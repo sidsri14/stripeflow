@@ -17,7 +17,7 @@ import demoRoutes from './routes/demo.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import sourceRoutes from './routes/source.routes.js';
 import recoveryRoutes from './routes/recovery.routes.js';
-import { billingWebhook } from './controllers/billing.controller.js';
+import { billingWebhook, stripeBillingWebhook } from './controllers/billing.controller.js';
 import { prisma } from './utils/prisma.js';
 import { redisConnection } from './jobs/recovery.queue.js';
 import './config/passport.js';
@@ -74,7 +74,8 @@ app.use(cookieParser());
 
 // Webhook routes need raw body for signature verification
 app.use('/api/webhooks/razorpay', webhookRoutes);
-app.use('/api/billing/webhook', express.raw({ type: 'application/json' }), billingWebhook);
+app.post('/api/webhooks/billing/razorpay', express.raw({ type: 'application/json' }), billingWebhook);
+app.post('/api/webhooks/billing/stripe', express.raw({ type: 'application/json' }), stripeBillingWebhook);
 
 // General purpose body parsers
 app.use(express.json());

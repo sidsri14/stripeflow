@@ -13,6 +13,7 @@ export function useDashboardData(currentUser: AuthUser | null) {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [sortKey, setSortKey] = useState<'status' | 'amount' | 'createdAt' | 'retryCount'>('createdAt');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [sourceFilter, setSourceFilter] = useState('ALL');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -50,7 +51,7 @@ export function useDashboardData(currentUser: AuthUser | null) {
 
   // ── Payments (paginated)
   const { data: paymentsPage, isLoading, isFetching } = useQuery({
-    queryKey: ['payments', page, PAGE_SIZE, debouncedSearch, statusFilter, sortKey, sortDir],
+    queryKey: ['payments', page, PAGE_SIZE, debouncedSearch, statusFilter, sourceFilter, sortKey, sortDir],
     queryFn: async () => {
       const { data } = await api.get('/payments', {
         params: {
@@ -58,6 +59,7 @@ export function useDashboardData(currentUser: AuthUser | null) {
           limit: PAGE_SIZE,
           search: debouncedSearch || undefined,
           status: statusFilter === 'ALL' ? undefined : statusFilter.toLowerCase(),
+          sourceId: sourceFilter === 'ALL' ? undefined : sourceFilter,
           sortKey,
           sortDir,
         },
@@ -70,12 +72,17 @@ export function useDashboardData(currentUser: AuthUser | null) {
 
   // ── Mutations
   const upgradeMutation = useMutation({
-    mutationFn: () => api.patch('/billing/plan', { plan: 'pro' }),
-    onSuccess: () => {
-      toast.success('Pro plan activated!');
-      setShowUpgradeModal(false);
-      // We don't invalidate 'user' here anymore as it's passed from App.tsx via onUpdateUser
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+    mutationFn: (gateway: 'razorpay' | 'stripe' = 'stripe') => 
+      api.post('/billing/create-checkout', { plan: 'pro', gateway }),
+    onSuccess: (response) => {
+      const { url } = response.data.data;
+      if (url) {
+        window.location.href = url; // Redirect to Stripe/Razorpay checkout
+      } else {
+        toast.success('Pro plan activated!');
+        setShowUpgradeModal(false);
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      }
     },
     onError: () => toast.error('Upgrade failed'),
   });
@@ -107,14 +114,14 @@ export function useDashboardData(currentUser: AuthUser | null) {
   useEffect(() => {
     if (page !== 1) setPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statusFilter, sortKey, sortDir]);
+  }, [search, statusFilter, sourceFilter, sortKey, sortDir]);
 
   const stats = statsData || { totalLost: 0, totalRecovered: 0, recoveredCount: 0, sourcesCount: 0 };
   const payments = useMemo(() => paymentsPage?.payments || [], [paymentsPage?.payments]);
 
   return {
-    state: { page, search, statusFilter, sortKey, sortDir, showUpgradeModal, lastFetchedAt },
-    setters: { setPage, setSearch, setStatusFilter, setSortKey, setSortDir, setShowUpgradeModal },
+    state: { page, search, statusFilter, sourceFilter, sortKey, sortDir, showUpgradeModal, lastFetchedAt },
+    setters: { setPage, setSearch, setStatusFilter, setSourceFilter, setSortKey, setSortDir, setShowUpgradeModal },
     data: { user: currentUser, isPaid, plan, stats, statsFetching, sources, paymentsPage, payments, isLoading, isFetching },
     mutations: { upgradeMutation, retryMutation, simulateFailureMutation }
   };

@@ -26,6 +26,8 @@ const Branding: FC<Props> = ({ user, onUpdateUser }) => {
     companyName: '',
     emailSignature: '',
   });
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailTone, setEmailTone] = useState<'professional' | 'friendly' | 'urgent'>('professional');
 
   useEffect(() => {
     if (user.brandSettings) {
@@ -36,12 +38,18 @@ const Branding: FC<Props> = ({ user, onUpdateUser }) => {
         console.error('Failed to parse brand settings', e);
       }
     }
-  }, [user.brandSettings]);
+    if (user.brandEmailSubject) setEmailSubject(user.brandEmailSubject);
+    if (user.brandEmailTone) setEmailTone(user.brandEmailTone as any);
+  }, [user.brandSettings, user.brandEmailSubject, user.brandEmailTone]);
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      const { data } = await api.patch('/auth/branding', { brandSettings: JSON.stringify(form) });
+      const { data } = await api.patch('/auth/branding', { 
+        brandSettings: JSON.stringify(form),
+        brandEmailSubject: emailSubject,
+        brandEmailTone: emailTone
+      });
       if (data.success) {
         toast.success('Branding settings saved!');
         onUpdateUser(data.data.user);
@@ -147,6 +155,39 @@ const Branding: FC<Props> = ({ user, onUpdateUser }) => {
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 outline-none focus:ring-2 focus:ring-stone-100 transition-all text-sm"
                 />
               </div>
+
+              <div className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-stone-400 uppercase tracking-widest pl-1">Custom Subject Line (optional)</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Your {{amount}} payment is waiting"
+                    value={emailSubject}
+                    onChange={e => setEmailSubject(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 outline-none focus:ring-2 focus:ring-stone-100 transition-all text-sm"
+                  />
+                  <p className="text-[10px] text-stone-400 font-medium pl-1 italic">Use {"{{amount}}"} as a placeholder for the payment amount.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-stone-400 uppercase tracking-widest pl-1">Email Tone</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['professional', 'friendly', 'urgent'].map(tone => (
+                      <button
+                        key={tone}
+                        onClick={() => setEmailTone(tone as any)}
+                        className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                          emailTone === tone 
+                            ? 'bg-stone-900 text-white dark:bg-white dark:text-stone-900' 
+                            : 'bg-stone-100 dark:bg-stone-800 text-stone-400 hover:text-stone-600'
+                        }`}
+                      >
+                        {tone}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>
@@ -168,6 +209,16 @@ const Branding: FC<Props> = ({ user, onUpdateUser }) => {
             <div className="border border-stone-200 dark:border-stone-800 rounded-3xl overflow-hidden bg-stone-50 dark:bg-stone-950 p-6 sm:p-12 shadow-inner">
               <div className="max-w-[500px] mx-auto bg-white dark:bg-stone-900 rounded-2xl shadow-xl overflow-hidden border border-white dark:border-stone-800">
                 <div className="p-10 space-y-10">
+                  <div className="flex border-b border-stone-100 dark:border-stone-800 pb-3 mb-6">
+                    <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest truncate">
+                      Subject: {emailSubject.replace('{{amount}}', '₹1,499') || (
+                        emailTone === 'urgent' ? 'Action Required: Your ₹1,499 payment failed' :
+                        emailTone === 'friendly' ? 'Just a heads-up: Your ₹1,499 payment didn\'t go through' :
+                        'Your ₹1,499 payment didn\'t go through — complete it here'
+                      )}
+                    </p>
+                  </div>
+
                   <div className="h-10">
                     {form.logoUrl ? (
                       <img src={form.logoUrl} alt="Logo" className="h-full object-contain" />
@@ -179,9 +230,19 @@ const Branding: FC<Props> = ({ user, onUpdateUser }) => {
                   </div>
 
                   <div className="space-y-4">
-                    <p className="text-stone-800 dark:text-stone-200 text-lg font-medium leading-relaxed">
-                      Your payment of <strong className="text-stone-900 dark:text-white">₹1,499</strong> couldn't be processed, but we've saved your order details.
-                    </p>
+                    {emailTone === 'urgent' ? (
+                      <p className="text-stone-800 dark:text-stone-200 text-lg font-medium leading-relaxed">
+                        <strong className="text-stone-900 dark:text-white">Immediate action required:</strong> Your payment of <strong className="text-stone-900 dark:text-white">₹1,499</strong> failed. To avoid cancellation/interruption, please complete your payment using the link below.
+                      </p>
+                    ) : emailTone === 'friendly' ? (
+                      <p className="text-stone-800 dark:text-stone-200 text-lg font-medium leading-relaxed">
+                        Hey! We noticed your <strong className="text-stone-900 dark:text-white">₹1,499</strong> payment didn't quite make it. Don't worry — we've saved your spot. You can finish up below whenever you're ready!
+                      </p>
+                    ) : (
+                      <p className="text-stone-800 dark:text-stone-200 text-lg font-medium leading-relaxed">
+                        Your payment of <strong className="text-stone-900 dark:text-white">₹1,499</strong> couldn't be processed, but we've saved your order details.
+                      </p>
+                    )}
                     <p className="text-stone-500 dark:text-stone-400 leading-relaxed">
                       You can complete your payment now in under 10 seconds using the link below. This link is valid for 7 days.
                     </p>

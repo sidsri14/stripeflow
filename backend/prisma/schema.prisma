@@ -27,6 +27,8 @@ model User {
   failedPayments        FailedPayment[]
   subscriptions         Subscription[]
   brandSettings         String?         // JSON: { logoUrl, primaryColor, accentColor, companyName, emailSignature }
+  brandEmailSubject     String?         // Custom recovery subject
+  brandEmailTone        String?         @default("professional") // professional | friendly | urgent
 }
 
 model Subscription {

@@ -23,7 +23,7 @@ const SORTABLE_FIELDS = ['status', 'amount', 'createdAt', 'retryCount'] as const
 type SortKey = typeof SORTABLE_FIELDS[number];
 
 /** Retrieves a paginated list of failed payments with optional filters. */
-export const getPaymentsList = async (userId: string, { status, search, page = 1, limit = 50, sortKey = 'createdAt', sortDir = 'desc' }: any = {}) => {
+export const getPaymentsList = async (userId: string, { status, sourceId, search, page = 1, limit = 50, sortKey = 'createdAt', sortDir = 'desc' }: any = {}) => {
   const resolvedSortKey: SortKey = SORTABLE_FIELDS.includes(sortKey) ? sortKey : 'createdAt';
   const resolvedSortDir: 'asc' | 'desc' = sortDir === 'asc' ? 'asc' : 'desc';
 
@@ -32,6 +32,7 @@ export const getPaymentsList = async (userId: string, { status, search, page = 1
   const where: Prisma.FailedPaymentWhereInput = {
     userId,
     ...(status && { status }),
+    ...(sourceId && { sourceId }),
     ...(safeSearch && { OR: [
       { customerEmail: { contains: safeSearch } },
       { paymentId: { contains: safeSearch } },

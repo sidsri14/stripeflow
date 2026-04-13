@@ -4,7 +4,7 @@ import { X, Sparkles, CheckCircle, Shield, RefreshCw } from 'lucide-react';
 
 interface UpgradeModalProps {
   onClose: () => void;
-  onUpgrade: () => void;
+  onUpgrade: (gateway: 'stripe' | 'razorpay') => void;
   upgrading: boolean;
 }
 
@@ -89,15 +89,32 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose, onUpgrade, 
             </p>
           </div>
 
-          <button
-            onClick={onUpgrade}
-            disabled={upgrading}
-            className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-          >
-            {upgrading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {upgrading ? 'Activating...' : 'Activate Auto-Recovery'}
-          </button>
-          <p className="text-center text-[10px] text-stone-400">No contracts. Cancel anytime.</p>
+          <div className="space-y-3">
+            <button
+              onClick={() => onUpgrade('stripe')}
+              disabled={upgrading}
+              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all disabled:opacity-60 flex flex-col items-center justify-center shadow-lg"
+            >
+              <div className="flex items-center gap-2">
+                {upgrading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                <span>Pay with Card (Stripe)</span>
+              </div>
+              <span className="text-[10px] opacity-70 font-medium">USD, EUR, GBP, more</span>
+            </button>
+
+            <button
+              onClick={() => onUpgrade('razorpay')}
+              disabled={upgrading}
+              className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-all disabled:opacity-60 flex flex-col items-center justify-center shadow-lg"
+            >
+              <div className="flex items-center gap-2">
+                {upgrading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                <span>Pay with UPI/Netbanking</span>
+              </div>
+              <span className="text-[10px] opacity-70 font-medium">INR Only (Razorpay)</span>
+            </button>
+          </div>
+          <p className="text-center text-[10px] text-stone-400">Secure checkout. Cancel anytime.</p>
         </div>
       </motion.div>
     </div>

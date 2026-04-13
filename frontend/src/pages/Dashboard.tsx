@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Search, RefreshCw, IndianRupee, AlertTriangle } from 'lucide-react';
+import { Search, RefreshCw, IndianRupee, AlertTriangle, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../utils/cn';
 import { formatAmount } from '../utils/format';
@@ -52,8 +52,8 @@ const Dashboard: FC<{ user: AuthUser }> = ({ user }) => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [queryClient]);
 
-  const { search, statusFilter, sortKey, sortDir, showUpgradeModal, lastFetchedAt, page } = state;
-  const { setSearch, setStatusFilter, setSortKey, setSortDir, setShowUpgradeModal, setPage } = setters;
+  const { search, statusFilter, sourceFilter, sortKey, sortDir, showUpgradeModal, lastFetchedAt, page } = state;
+  const { setSearch, setStatusFilter, setSourceFilter, setSortKey, setSortDir, setShowUpgradeModal, setPage } = setters;
   const { plan, isPaid, stats, statsFetching, sources, paymentsPage, payments, isLoading, isFetching } = data;
   const { upgradeMutation, retryMutation, simulateFailureMutation } = mutations;
 
@@ -91,7 +91,7 @@ const Dashboard: FC<{ user: AuthUser }> = ({ user }) => {
         {showUpgradeModal && (
           <UpgradeModal
             onClose={() => setShowUpgradeModal(false)}
-            onUpgrade={() => upgradeMutation.mutate()}
+            onUpgrade={(gateway) => upgradeMutation.mutate(gateway)}
             upgrading={upgradeMutation.isPending}
           />
         )}
@@ -183,6 +183,18 @@ const Dashboard: FC<{ user: AuthUser }> = ({ user }) => {
             />
           </div>
 
+          <div className="flex items-center gap-3">
+            {isPaid && (
+              <button
+                onClick={() => window.open(`${api.defaults.baseURL}/payments/export`, '_blank')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </button>
+            )}
+          </div>
+
           <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
             <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl" role="tablist" aria-label="Filter by status">
               {['ALL', 'PENDING', 'RETRYING', 'RECOVERED'].map((s) => (
@@ -201,6 +213,20 @@ const Dashboard: FC<{ user: AuthUser }> = ({ user }) => {
                   {s}
                 </button>
               ))}
+            </div>
+
+            <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl items-center">
+              <span className="text-[10px] uppercase font-semibold text-stone-400 px-2 italic">Source:</span>
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none pr-4 text-stone-800 dark:text-stone-100"
+              >
+                <option value="ALL">All Sources</option>
+                {sources.map((s: any) => (
+                  <option key={s.id} value={s.id}>{s.name || s.type}</option>
+                ))}
+              </select>
             </div>
 
             <div className="border border-warm-border dark:border-stone-700 p-1 rounded-xl flex items-center gap-1.5 px-3 bg-white dark:bg-stone-800" role="group" aria-label="Sort by">

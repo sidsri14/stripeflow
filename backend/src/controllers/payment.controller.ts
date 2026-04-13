@@ -41,3 +41,28 @@ export const manualRetry = async (req: AuthRequest, res: Response, next: NextFun
     successResponse(res, { message: 'Retry queued' });
   } catch (err) { next(err); }
 };
+
+export const exportPayments = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { prisma } = await import('../utils/prisma.js');
+    const payments = await prisma.failedPayment.findMany({
+      where: { userId: req.userId!, status: 'recovered' },
+      orderBy: { recoveredAt: 'desc' },
+      include: { source: true },
+    });
+
+    let csv = 'Date,Customer,Email,Amount,Currency,Source,Platform ID\n';
+    payments.forEach(p => {
+      const date = p.recoveredAt?.toISOString().split('T')[0] || p.createdAt.toISOString().split('T')[0];
+      const name = (p.customerName || 'N/A').replace(/,/g, '');
+      const email = p.customerEmail;
+      const amt = (p.amount / 100).toFixed(2);
+      const source = (p.source?.name || p.source?.type || 'N/A').replace(/,/g, '');
+      csv += `${date},${name},${email},${amt},${p.currency},${source},${p.paymentId}\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=recovered_payments.csv');
+    res.status(200).send(csv);
+  } catch (err) { next(err); }
+};

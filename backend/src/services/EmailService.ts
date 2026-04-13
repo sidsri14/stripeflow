@@ -16,7 +16,7 @@ export class EmailService {
   static async sendRecoveryEmail(failedPayment: any, link: string, retryNumber: number): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { id: failedPayment.userId },
-      select: { brandSettings: true },
+      select: { brandSettings: true, brandEmailSubject: true, brandEmailTone: true },
     });
 
     let branding: any = {};
@@ -27,6 +27,10 @@ export class EmailService {
         console.error('Failed to parse brandSettings', e);
       }
     }
+    
+    // Merge database columns into branding object
+    branding.emailSubject = user?.brandEmailSubject || branding.emailSubject;
+    branding.emailTone = (user?.brandEmailTone as any) || branding.emailTone;
 
     const params = {
       customerName: failedPayment.customerName || undefined,

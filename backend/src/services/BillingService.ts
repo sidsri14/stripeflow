@@ -1,20 +1,22 @@
 import { prisma } from '../utils/prisma.js';
 import { RazorpayService } from './RazorpayService.js';
+import { StripeBillingService } from './StripeBillingService.js';
 
 const PLAN_IDS = {
   starter: process.env.RAZORPAY_STARTER_PLAN_ID,
   pro: process.env.RAZORPAY_PRO_PLAN_ID,
 } as const;
 
-/**
- * Service for handling platform-level billing and subscriptions.
- * Day 1-2 of Monetization Roadmap.
- */
 export class BillingService {
   /**
-   * Creates a new Razorpay subscription and saves it to the DB in 'created' status.
+   * Creates a checkout session or subscription for a plan using the specified gateway.
    */
-  static async createSubscription(userId: string, plan: 'starter' | 'pro') {
+  static async createSubscription(userId: string, plan: 'starter' | 'pro', gateway: 'razorpay' | 'stripe' = 'razorpay') {
+    if (gateway === 'stripe') {
+      return StripeBillingService.createCheckoutSession(userId, plan);
+    }
+
+    // Razorpay Fallback (Legacy/India)
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw { status: 404, message: 'User not found' };
 
@@ -23,15 +25,13 @@ export class BillingService {
       throw { status: 500, message: `Razorpay Plan ID for '${plan}' is not configured on the server.` };
     }
 
-    // Create Razorpay Subscription
     const subscription = await RazorpayService.createRazorpaySubscription({
       plan_id: planId,
       customer_notify: 1,
-      total_count: 120, // 10 years @ monthly
+      total_count: 120,
       notes: { userId, plan },
     });
 
-    // Save in DB
     await prisma.subscription.create({
       data: {
         userId,
@@ -43,7 +43,7 @@ export class BillingService {
 
     return {
       subscriptionId: subscription.id,
-      shortUrl: subscription.short_url,
+      url: subscription.short_url,
     };
   }
 

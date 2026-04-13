@@ -2,6 +2,7 @@ import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '../middleware/auth.middleware.js';
 import { BillingService } from '../services/BillingService.js';
 import { RazorpayService } from '../services/RazorpayService.js';
+import { StripeBillingService } from '../services/StripeBillingService.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 import pino from 'pino';
 
@@ -13,12 +14,12 @@ const logger = pino({ transport: { target: 'pino-pretty', options: { colorize: t
  */
 export const createSubscription = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { plan } = req.body; // "starter" or "pro"
+    const { plan, gateway } = req.body; // "starter" or "pro", "razorpay" or "stripe"
     if (!['starter', 'pro'].includes(plan)) {
       return errorResponse(res, 'Invalid plan', 400);
     }
 
-    const result = await BillingService.createSubscription(req.userId!, plan as 'starter' | 'pro');
+    const result = await BillingService.createSubscription(req.userId!, plan as 'starter' | 'pro', gateway);
     successResponse(res, result);
   } catch (err) {
     next(err);
@@ -84,5 +85,27 @@ export const billingWebhook = async (req: any, res: Response, next: NextFunction
     successResponse(res, { success: true });
   } catch (err) {
     next(err);
+  }
+};
+
+/**
+ * Public webhook endpoint for Stripe platform subscription events.
+ */
+export const stripeBillingWebhook = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const sig = req.headers['stripe-signature'];
+    if (!sig) {
+      return errorResponse(res, 'Missing signature', 400);
+    }
+
+    // Note: stripe.webhooks.constructEvent requires the raw body as a Buffer.
+    // Ensure the middleware (src/app.ts) preserves the raw body for this route.
+    const event = await StripeBillingService.verifyWebhookSignature(req.body, sig);
+    await StripeBillingService.handleWebhook(event);
+
+    successResponse(res, { received: true });
+  } catch (err: any) {
+    logger.error({ err: err.message }, '[Stripe Billing Webhook] Failed');
+    errorResponse(res, `Webhook Error: ${err.message}`, 400);
   }
 };

@@ -60,6 +60,8 @@ interface BrandingOptions {
   logoUrl?: string;
   primaryColor?: string;
   signature?: string;
+  emailSubject?: string;
+  emailTone?: 'professional' | 'friendly' | 'urgent';
 }
 
 const getBaseLayout = (content: string, ctaLink?: string, ctaText?: string, branding?: BrandingOptions) => {
@@ -95,12 +97,7 @@ const getBaseLayout = (content: string, ctaLink?: string, ctaText?: string, bran
   `;
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const formatAmount = (paise: number, currency: string): string => {
-  const symbol = currency === 'INR' ? '₹' : currency + ' ';
-  return `${symbol}${(paise / 100).toLocaleString('en-IN')}`;
-};
+import { formatCurrency } from '../utils/currency.js';
 
 // ── Email 1: Immediate notification (retryCount = 0) ─────────────────────────
 
@@ -117,14 +114,27 @@ export const sendPaymentFailedEmail = async (
 ): Promise<void> => {
   const name = params.customerName ? params.customerName.split(' ')[0] : null;
   const greeting = name ? `Hi ${name},` : 'Hi,';
-  const amt = formatAmount(params.amount, params.currency);
+  const amt = formatCurrency(params.amount, params.currency);
 
-  const subject = `Your ${amt} payment didn't go through — complete it here`;
+  const subject = branding?.emailSubject 
+    ? branding.emailSubject.replace('{{amount}}', amt)
+    : branding?.emailTone === 'urgent'
+      ? `Action Required: Your ${amt} payment failed`
+      : branding?.emailTone === 'friendly'
+        ? `Just a heads-up: Your ${amt} payment didn't go through`
+        : `Your ${amt} payment didn't go through — complete it here`;
+
+  let bodyHtml = `<p>Your payment of <strong>${amt}</strong> couldn't be processed, but we've saved your order details.</p>`;
+  if (branding?.emailTone === 'urgent') {
+    bodyHtml = `<p><strong>Immediate action required:</strong> Your payment of <strong>${amt}</strong> failed. To avoid cancellation/interruption, please complete your payment using the link below.</p>`;
+  } else if (branding?.emailTone === 'friendly') {
+    bodyHtml = `<p>Hey! We noticed your <strong>${amt}</strong> payment didn't quite make it. Don't worry — we've saved your spot. You can finish up below whenever you're ready!</p>`;
+  }
 
   const text = `${greeting}\n\nYour payment of ${amt} couldn't be processed — but your order is still saved.\n\nComplete it now in under 10 seconds:\n${params.paymentLink}\n\nThis link is valid for 7 days. If you need help, just reply to this email.\n\nRef: ${params.paymentId}\n\n──────────────────────────────────────────────────\nPowered by PayRecover · Automated payment recovery`;
 
   const html = getBaseLayout(
-    `<p>Your payment of <strong>${amt}</strong> couldn't be processed, but we've saved your order details.</p>
+    `${bodyHtml}
      <p>You can complete your payment now in under 10 seconds using the link below. This link is valid for 7 days.</p>`,
     params.paymentLink,
     'Complete Payment Now',
@@ -150,7 +160,7 @@ export const sendPaymentReminderEmail = async (
 ): Promise<void> => {
   const name = params.customerName ? params.customerName.split(' ')[0] : null;
   const greeting = name ? `Hi ${name},` : 'Hi,';
-  const amt = formatAmount(params.amount, params.currency);
+  const amt = formatCurrency(params.amount, params.currency);
   const isFinal = params.dayOffset >= 3;
 
   const subject = isFinal
