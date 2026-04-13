@@ -4,9 +4,8 @@ import { prisma } from '../utils/prisma.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
-const CALLBACK_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api.yourdomain.com/api/auth/google/callback'
-  : 'http://localhost:3000/api/auth/google/callback';
+const CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL
+  || 'http://localhost:3000/api/auth/google/callback';
 
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
