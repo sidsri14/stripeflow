@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
 
-import { Moon, Sun, LogOut, TrendingUp, Link2, Loader2, Settings as SettingsIcon, Menu, X } from 'lucide-react';
+import { Moon, Sun, LogOut, TrendingUp, Link2, Loader2, Settings as SettingsIcon, Menu, X, Users } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { api } from './api';
 
@@ -20,6 +20,7 @@ const PaymentStatus = lazy(() => import('./pages/PaymentStatus'));
 const Terms = lazy(() => import('./pages/Terms'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Contact = lazy(() => import('./pages/Contact'));
+const Team = lazy(() => import('./pages/Team'));
 
 export type AuthUser = {
   id: string;
@@ -68,6 +69,7 @@ const MobileNav = ({ user, onLogout }: { user: AuthUser; onLogout: () => void })
   const menuItems = [
     { label: 'Dashboard', icon: TrendingUp, path: '/dashboard' },
     { label: 'Sources', icon: Link2, path: '/sources' },
+    { label: 'Team', icon: Users, path: '/team' },
     { label: 'Settings', icon: SettingsIcon, path: '/settings' },
   ];
 
@@ -163,6 +165,13 @@ const Layout: React.FC<React.PropsWithChildren<LayoutProps>> = ({ children, user
             </button>
 
             <button
+              onClick={() => navigate('/team')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 font-medium text-sm border border-transparent hover:border-warm-border dark:hover:border-stone-700"
+            >
+              <Users className="w-4 h-4" /> Team
+            </button>
+
+            <button
               onClick={() => navigate('/settings')}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 font-medium text-sm border border-transparent hover:border-warm-border dark:hover:border-stone-700"
             >
@@ -249,6 +258,7 @@ function PageTitle() {
       '/login': 'Sign In | PayRecover',
       '/register': 'Create Account | PayRecover',
       '/sources': 'Payment Sources | PayRecover',
+      '/team': 'Team Management | PayRecover',
       '/settings': 'Settings | PayRecover',
       '/branding': 'Branding & Design | PayRecover',
       '/forgot-password': 'Reset Password | PayRecover',
@@ -340,6 +350,7 @@ function App() {
                     <Route path="/dashboard" element={<Dashboard user={user} />} />
                     <Route path="/payments/:id" element={<PaymentDetails />} />
                     <Route path="/sources" element={<Sources />} />
+                    <Route path="/team" element={<Team />} />
                     <Route path="/settings" element={<Settings user={user} onUpdateUser={(u) => setUser(u)} />} />
                     <Route path="/branding" element={<Branding user={user} onUpdateUser={(u) => setUser(u)} />} />
                     <Route path="*" element={<Navigate to="/dashboard" />} />

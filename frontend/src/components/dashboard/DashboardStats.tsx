@@ -1,8 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, RotateCcw, CheckCircle2, IndianRupee } from 'lucide-react';
+import { TrendingUp, RotateCcw, CheckCircle2, Smartphone, Monitor } from 'lucide-react';
 import { cn } from '../../utils/cn';
-import { formatAmount } from '../../utils/format';
 
 interface DashboardStatsProps {
   stats: {
@@ -12,6 +11,7 @@ interface DashboardStatsProps {
     totalFailedAmount: number;
     totalRecoveredAmount: number;
     totalClicks: number;
+    platformBreakdown?: { mobile: number; desktop: number };
   } | null;
 }
 
@@ -27,14 +27,21 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
     {
       label: 'Link Interactions',
       value: stats?.totalClicks ?? 0,
-      sub: 'Recovery link clicks',
+      sub: 'Total Click Volume',
       icon: <RotateCcw className="w-5 h-5 text-blue-500" />,
       color: 'blue',
     },
     {
+      label: 'Mobile Clicks',
+      value: stats?.platformBreakdown?.mobile ?? 0,
+      sub: 'User-Agent identified',
+      icon: <Smartphone className="w-5 h-5 text-indigo-500" />,
+      color: 'indigo',
+    },
+    {
       label: 'Total Recovered',
       value: stats?.totalRecovered ?? 0,
-      sub: 'Payments recovered',
+      sub: 'Success Count',
       icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
       color: 'emerald',
     },
@@ -48,7 +55,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       {cards.map((card, idx) => (
         <motion.div
            key={card.label}
@@ -65,6 +72,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
               "p-2 rounded-xl shrink-0 transition-all",
               card.color === 'emerald' ? "bg-emerald-50 dark:bg-emerald-900/20 group-hover:bg-emerald-100" :
               card.color === 'blue' ? "bg-blue-50 dark:bg-blue-900/20 group-hover:bg-blue-100" :
+              card.color === 'indigo' ? "bg-indigo-50 dark:bg-indigo-900/20 group-hover:bg-indigo-100" :
               "bg-amber-50 dark:bg-amber-900/20 group-hover:bg-amber-100"
             )}>
               {card.icon}

@@ -19,18 +19,25 @@ export const trackClick = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Recovery link not found' });
     }
 
-    // 1. Increment click count
+    // 1. Gather Analytics Metadata
+    const userAgent = req.headers['user-agent'] || 'Unknown';
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
+
+    // 2. Increment click count and log metadata
     await prisma.failedPayment.update({
       where: { id: failedPaymentId },
       data: { clickCount: { increment: 1 } }
     });
 
-    // 2. Log audit event
+    // 3. Log detailed audit event
     await logAuditAction(payment.userId, 'PAYMENT_LINK_CLICKED', 'FailedPayment', failedPaymentId, { 
-      email: payment.customerEmail 
+      email: payment.customerEmail,
+      ip,
+      userAgent,
+      platform: userAgent.includes('Mobi') ? 'Mobile' : 'Desktop'
     });
 
-    // 3. Redirect to the source provider's actual recovery link
+    // 4. Redirect to the source provider's actual recovery link
     res.redirect(payment.recoveryLinks[0].url);
   } catch (err) {
     console.error('Track Click Error:', err);

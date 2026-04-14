@@ -13,6 +13,7 @@ import authRoutes from './routes/auth.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
 import webhookRoutes from './routes/webhook.routes.js';
 import billingRoutes from './routes/billing.routes.js';
+import teamRoutes from './routes/team.routes.js';
 import demoRoutes from './routes/demo.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import sourceRoutes from './routes/source.routes.js';
@@ -148,6 +149,7 @@ app.get('/health', async (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/team', teamRoutes);
 app.use('/api/demo', demoRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/sources', sourceRoutes);

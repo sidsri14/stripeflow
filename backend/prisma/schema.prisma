@@ -26,6 +26,8 @@ model User {
   sources               PaymentSource[]
   failedPayments        FailedPayment[]
   subscriptions         Subscription[]
+  memberships           Membership[]
+  auditLogs             AuditLog[]
   brandSettings         String?         // JSON: { logoUrl, primaryColor, accentColor, companyName, emailSignature }
   brandEmailSubject     String?         // Custom recovery subject
   brandEmailTone        String?         @default("professional") // professional | friendly | urgent
@@ -52,6 +54,8 @@ model PaymentSource {
   id            String         @id @default(uuid())
   userId        String
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization  Organization?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   provider      String         @default("razorpay")
   name          String?
   credentials   String         // Encrypted JSON blob containing keyId, keySecret, webhookSecret, etc.
@@ -60,6 +64,7 @@ model PaymentSource {
   events        PaymentEvent[]
 
   @@index([userId])
+  @@index([organizationId])
 }
 
 model PaymentEvent {
@@ -139,6 +144,7 @@ model Reminder {
 model AuditLog {
   id         String   @id @default(uuid())
   userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   action     String
   resource   String?
   resourceId String?
@@ -147,4 +153,27 @@ model AuditLog {
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([resource, resourceId])
+}
+
+model Organization {
+  id          String       @id @default(uuid())
+  name        String
+  members     Membership[]
+  sources     PaymentSource[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Membership {
+  id             String       @id @default(uuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role           String       @default("member") // owner | admin | member
+  createdAt      DateTime     @default(now())
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
 }

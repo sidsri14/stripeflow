@@ -116,6 +116,22 @@ export const getPaymentMetrics = async (userId: string) => {
 export const getFullDashboardStats = async (userId: string) => {
   const m = await getPaymentMetrics(userId);
   const counts = { pending: 0, retrying: 0, recovered: 0, abandoned: 0, ...m.counts };
+
+  // ── Phase 6: Platform Insights
+  const interactions = await prisma.auditLog.findMany({
+    where: { userId, action: 'PAYMENT_LINK_CLICKED' },
+    select: { details: true }
+  });
+
+  const platformBreakdown = { mobile: 0, desktop: 0 };
+  interactions.forEach(log => {
+    try {
+      const details = JSON.parse(log.details || '{}');
+      if (details.platform === 'Mobile') platformBreakdown.mobile++;
+      else platformBreakdown.desktop++;
+    } catch (e) {}
+  });
+
   return {
     totalFailed: (counts.pending || 0) + (counts.retrying || 0),
     totalRecovered: counts.recovered || 0,
@@ -126,5 +142,6 @@ export const getFullDashboardStats = async (userId: string) => {
     recoveredThisMonth: m.recoveredThisMonth,
     totalClicks: m.totalClicks,
     counts,
+    platformBreakdown
   };
 };

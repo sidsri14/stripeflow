@@ -1,7 +1,7 @@
 import type { Job } from 'bullmq';
 import pino from 'pino';
 import { prisma } from '../utils/prisma.js';
-import { EmailService } from '../services/EmailService.js';
+import { NotificationService } from '../services/NotificationService.js';
 import { recoveryQueue } from './recovery.queue.js';
 import { RETRY_DELAYS_MS } from '../services/payment.service.js';
 import { ProviderFactory } from '../providers/ProviderFactory.js';
@@ -86,8 +86,8 @@ export async function processRecoveryJob(job: Job<RecoveryJobData>): Promise<voi
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
     const trackingUrl = `${backendUrl}/api/recovery/track/${failedPaymentId}`;
 
-    // 4. Send Email (Initial or Reminder)
-    await EmailService.sendRecoveryEmail(payment, trackingUrl, payment.retryCount);
+    // 4. Send Recovery Notification (Email / SMS / WhatsApp)
+    await NotificationService.dispatchRecovery(payment, trackingUrl);
 
     // 5. Schedule Next Retry or Abandon
     if (payment.retryCount < 2) {
