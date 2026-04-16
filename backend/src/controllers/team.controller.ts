@@ -117,3 +117,94 @@ export const inviteUser = async (req: AuthRequest, res: Response, next: NextFunc
     successResponse(res, newMember, 201);
   } catch (err) { next(err); }
 };
+
+export const updateMember = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const orgId = String(req.params.orgId || '');
+    const targetUserId = String(req.params.userId || '');
+    const { role } = req.body;
+
+    const allowedRoles = ['admin', 'member'];
+    if (!role || !allowedRoles.includes(role)) {
+      return errorResponse(res, 'Invalid role. Allowed: admin, member', 400);
+    }
+
+    // Requester must be owner or admin
+    const requester = await prisma.membership.findFirst({
+      where: { userId: req.userId!, organizationId: orgId, role: { in: ['owner', 'admin'] } },
+    });
+    if (!requester) return errorResponse(res, 'Insufficient permissions', 403);
+
+    // Target member must exist in this org
+    const target = await prisma.membership.findFirst({
+      where: { userId: targetUserId, organizationId: orgId },
+    });
+    if (!target) return errorResponse(res, 'Member not found', 404);
+
+    // Cannot change an owner's role
+    if (target.role === 'owner') return errorResponse(res, 'Cannot change owner role', 403);
+
+    const updated = await prisma.membership.update({
+      where: { id: target.id },
+      data: { role },
+    });
+    successResponse(res, updated);
+  } catch (err) { next(err); }
+};
+
+export const removeMember = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const orgId = String(req.params.orgId || '');
+    const targetUserId = String(req.params.userId || '');
+
+    // Requester must be owner or admin
+    const requester = await prisma.membership.findFirst({
+      where: { userId: req.userId!, organizationId: orgId, role: { in: ['owner', 'admin'] } },
+    });
+    if (!requester) return errorResponse(res, 'Insufficient permissions', 403);
+
+    // Owner cannot remove themselves
+    if (targetUserId === req.userId && requester.role === 'owner') {
+      return errorResponse(res, 'Owner cannot remove themselves', 400);
+    }
+
+    const target = await prisma.membership.findFirst({
+      where: { userId: targetUserId, organizationId: orgId },
+    });
+    if (!target) return errorResponse(res, 'Member not found', 404);
+
+    // Cannot remove an owner (unless they are removing themselves as non-owner)
+    if (target.role === 'owner' && targetUserId !== req.userId) {
+      return errorResponse(res, 'Cannot remove organization owner', 403);
+    }
+
+    await prisma.membership.delete({ where: { id: target.id } });
+    successResponse(res, { removed: true });
+  } catch (err) { next(err); }
+};
+
+export const updateOrganization = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const orgId = String(req.params.orgId || '');
+    const { name } = req.body;
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return errorResponse(res, 'Organization name is required', 400);
+    }
+    if (name.length > 100) {
+      return errorResponse(res, 'Name must be 100 characters or fewer', 400);
+    }
+
+    // Only owner can rename org
+    const membership = await prisma.membership.findFirst({
+      where: { userId: req.userId!, organizationId: orgId, role: 'owner' },
+    });
+    if (!membership) return errorResponse(res, 'Only the owner can update organization details', 403);
+
+    const org = await prisma.organization.update({
+      where: { id: orgId },
+      data: { name: name.trim() },
+    });
+    successResponse(res, org);
+  } catch (err) { next(err); }
+};
