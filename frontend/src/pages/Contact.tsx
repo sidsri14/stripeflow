@@ -2,24 +2,33 @@ import React, { useState } from 'react';
 import { Mail, MessageSquare, Send, CheckCircle2, LifeBuoy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import { api } from '../api';
 
 const Contact = () => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ name: '', email: '', message: '' });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await api.post('/contact', form);
       setSubmitted(true);
-      toast.success('Message sent! We\'ll get back to you soon.');
-    }, 1500);
+      toast.success("Message sent! We'll get back to you soon.");
+    } catch {
+      toast.error('Failed to send message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       className="max-w-5xl mx-auto py-20 px-6 sm:px-10"
@@ -66,41 +75,50 @@ const Contact = () => {
         <div className="bg-white dark:bg-stone-800 rounded-3xl p-8 border border-warm-border dark:border-stone-700 shadow-xl shadow-stone-200/50 dark:shadow-none">
           <AnimatePresence mode="wait">
             {!submitted ? (
-              <motion.form 
+              <motion.form
                 key="form"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onSubmit={handleSubmit} 
+                onSubmit={handleSubmit}
                 className="space-y-6"
               >
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-stone-400">Your Name</label>
-                  <input 
-                    required 
-                    className="w-full px-5 py-4 rounded-2xl bg-stone-50 dark:bg-stone-900 border border-transparent focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-stone-800 dark:text-stone-100" 
-                    placeholder="Jane Doe" 
+                  <input
+                    required
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    className="w-full px-5 py-4 rounded-2xl bg-stone-50 dark:bg-stone-900 border border-transparent focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-stone-800 dark:text-stone-100"
+                    placeholder="Jane Doe"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-stone-400">Business Email</label>
-                  <input 
-                    type="email" 
-                    required 
-                    className="w-full px-5 py-4 rounded-2xl bg-stone-50 dark:bg-stone-900 border border-transparent focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-stone-800 dark:text-stone-100" 
-                    placeholder="jane@company.com" 
+                  <input
+                    type="email"
+                    required
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    className="w-full px-5 py-4 rounded-2xl bg-stone-50 dark:bg-stone-900 border border-transparent focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-stone-800 dark:text-stone-100"
+                    placeholder="jane@company.com"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-stone-400">Message</label>
-                  <textarea 
-                    required 
-                    rows={4} 
-                    className="w-full px-5 py-4 rounded-2xl bg-stone-50 dark:bg-stone-900 border border-transparent focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-stone-800 dark:text-stone-100 resize-none" 
-                    placeholder="How can we help? Provide details about your gateway or failed payment..." 
+                  <textarea
+                    required
+                    name="message"
+                    value={form.message}
+                    onChange={handleChange}
+                    rows={4}
+                    className="w-full px-5 py-4 rounded-2xl bg-stone-50 dark:bg-stone-900 border border-transparent focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-stone-800 dark:text-stone-100 resize-none"
+                    placeholder="How can we help? Provide details about your gateway or failed payment..."
                   />
                 </div>
-                <button 
+                <button
                   disabled={loading}
                   className="w-full py-4 rounded-2xl bg-stone-900 dark:bg-indigo-600 text-white font-black uppercase tracking-widest text-xs hover:bg-stone-800 dark:hover:bg-indigo-500 transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-50"
                 >
@@ -115,7 +133,7 @@ const Contact = () => {
                 </button>
               </motion.form>
             ) : (
-              <motion.div 
+              <motion.div
                 key="success"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -128,8 +146,8 @@ const Contact = () => {
                 <p className="text-stone-500 dark:text-stone-400 font-medium">
                   We've received your request and will get back to you within 12 hours.
                 </p>
-                <button 
-                  onClick={() => setSubmitted(false)}
+                <button
+                  onClick={() => { setSubmitted(false); setForm({ name: '', email: '', message: '' }); }}
                   className="mt-8 text-xs font-black uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors"
                 >
                   Send another message
