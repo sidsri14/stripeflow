@@ -20,8 +20,9 @@ const Contact = () => {
       await api.post('/contact', form);
       setSubmitted(true);
       toast.success("Message sent! We'll get back to you soon.");
-    } catch {
-      toast.error('Failed to send message. Please try again.');
+    } catch (err: unknown) {
+      const msg = (err as any)?.response?.data?.error;
+      toast.error(msg ?? 'Failed to send message. Please try again.');
     } finally {
       setLoading(false);
     }
