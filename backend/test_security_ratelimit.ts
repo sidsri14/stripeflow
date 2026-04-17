@@ -21,6 +21,7 @@ async function run() {
         break;
       }
       // If it's not a 429, it's still a hit that the limiter should count.
+      console.log('Got status:', err.response?.status, err.response?.data);
       successCount++;
     }
   }
