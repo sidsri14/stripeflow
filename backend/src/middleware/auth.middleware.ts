@@ -82,7 +82,7 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
   } catch (error) {
     // Log invalid token attempts for security monitoring
     const { logAuditAction } = await import('../services/audit.service.js');
-    await logAuditAction('system', 'UNAUTHORIZED_ACCESS_ATTEMPT', 'Auth', 'none', {
+    await logAuditAction(null, 'UNAUTHORIZED_ACCESS_ATTEMPT', 'Auth', 'none', {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
       error: 'Invalid token'

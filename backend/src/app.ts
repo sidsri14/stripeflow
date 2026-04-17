@@ -113,7 +113,7 @@ app.get('/api/csrf-token', (_req, res) => {
     httpOnly: false,
     // Cross-origin (Vercel → Railway): SameSite=None is required so the browser
     // sends the cookie back on cross-site requests. Requires Secure=true.
-    sameSite: isProd ? 'none' : 'strict',
+    sameSite: isProd ? 'none' : 'lax',
     secure: isProd,
     maxAge: 7 * 24 * 3600000,
   });
