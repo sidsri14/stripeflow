@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Copy, CheckCircle2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, ExternalLink, Copy, CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -20,6 +20,7 @@ interface RecoveryLink {
   id: string;
   url: string;
   createdAt: string;
+  usedAt?: string;
 }
 
 interface FailedPayment {
@@ -51,6 +52,8 @@ const MetricCard: React.FC<{ label: string; value: React.ReactNode }> = ({ label
 const PaymentDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [retried, setRetried] = useState(false);
 
   const { data: payment, isLoading, error } = useQuery({
     queryKey: ['payment', id],
@@ -58,6 +61,16 @@ const PaymentDetails: React.FC = () => {
       const { data } = await api.get(`/payments/${id}`);
       return data.data as FailedPayment;
     },
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: () => api.post(`/payments/${id}/retry`),
+    onSuccess: () => {
+      toast.success('Retry queued — worker will process shortly');
+      setRetried(true);
+      queryClient.invalidateQueries({ queryKey: ['payment', id] });
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Retry failed'),
   });
 
   const copyToClipboard = (text: string) => {
@@ -117,7 +130,19 @@ const PaymentDetails: React.FC = () => {
           </h1>
           <p className="text-stone-400 text-sm mt-0.5">{payment.customerEmail}</p>
         </div>
-        <StatusBadge status={payment.status} />
+        <div className="flex items-center gap-3">
+          <StatusBadge status={payment.status} />
+          {['pending', 'retrying'].includes(payment.status) && (
+            <button
+              onClick={() => retryMutation.mutate()}
+              disabled={retryMutation.isPending || retried}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              {retryMutation.isPending ? 'Queuing…' : retried ? 'Queued' : 'Retry Now'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Metric cards */}
@@ -135,7 +160,8 @@ const PaymentDetails: React.FC = () => {
             Recovery Link{payment.recoveryLinks.length > 1 ? 's' : ''}
           </h2>
           {payment.recoveryLinks.map((link) => (
-            <div key={link.id} className="flex items-center gap-3 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg p-3">
+            <div key={link.id} className="flex flex-col gap-2">
+              <div className="flex items-center gap-3 bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg p-3">
               <span className="flex-1 text-sm font-mono text-stone-600 dark:text-stone-300 truncate">{link.url}</span>
               <button
                 onClick={() => copyToClipboard(link.url)}
@@ -153,6 +179,13 @@ const PaymentDetails: React.FC = () => {
               >
                 <ExternalLink className="w-4 h-4" />
               </a>
+            </div>
+            {link.usedAt && (
+              <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium pl-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Customer clicked · {formatDate(link.usedAt)}
+              </span>
+            )}
             </div>
           ))}
         </div>
@@ -188,9 +221,15 @@ const PaymentDetails: React.FC = () => {
                     {formatDate(r.sentAt)}
                   </td>
                   <td className="px-6 py-3">
-                    <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-semibold">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> {r.status}
-                    </span>
+                    {r.status === 'failed' ? (
+                      <span className="flex items-center gap-1.5 text-rose-500 text-xs font-semibold">
+                        <XCircle className="w-3.5 h-3.5" /> failed
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-semibold">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> {r.status}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

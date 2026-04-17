@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FC, FormEvent } from 'react';
-import { Plus, Trash2, Send, Copy, Loader2, Webhook, CheckCircle2, XCircle, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, Trash2, Send, Copy, Loader2, Webhook, CheckCircle2, XCircle, ToggleLeft, ToggleRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api';
@@ -162,8 +162,67 @@ const AddForm: FC<{ onClose: () => void; onCreated: (ep: WebhookEndpoint & { sec
   );
 };
 
+interface WebhookDelivery {
+  id: string;
+  event: string;
+  status: string;
+  responseCode: number | null;
+  attempt: number;
+  attemptedAt: string;
+}
+
+const DeliveryLog: FC<{ endpointId: string }> = ({ endpointId }) => {
+  const { data, isLoading } = useQuery<WebhookDelivery[]>({
+    queryKey: ['webhook-deliveries', endpointId],
+    queryFn: async () => {
+      const { data } = await api.get(`/webhook-endpoints/${endpointId}/deliveries`);
+      return data.data;
+    },
+    staleTime: 30_000,
+  });
+
+  if (isLoading) return <div className="py-4 text-center text-xs text-stone-400 animate-pulse">Loading deliveries…</div>;
+  if (!data?.length) return <div className="py-4 text-center text-xs text-stone-400">No deliveries yet.</div>;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-stone-100 dark:border-stone-700 text-stone-400 font-semibold uppercase tracking-wider">
+            <th className="py-2 px-3 text-left">Event</th>
+            <th className="py-2 px-3 text-left">Status</th>
+            <th className="py-2 px-3 text-left">Code</th>
+            <th className="py-2 px-3 text-left">Attempt</th>
+            <th className="py-2 px-3 text-left">Time</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-stone-50 dark:divide-stone-800">
+          {data.map(d => (
+            <tr key={d.id} className="hover:bg-stone-50 dark:hover:bg-stone-800/50">
+              <td className="py-2 px-3 font-mono text-stone-600 dark:text-stone-300">{d.event}</td>
+              <td className="py-2 px-3">
+                {d.status === 'success' ? (
+                  <span className="flex items-center gap-1 text-emerald-600 font-semibold"><CheckCircle2 className="w-3 h-3" />success</span>
+                ) : d.status === 'timeout' ? (
+                  <span className="flex items-center gap-1 text-amber-500 font-semibold"><XCircle className="w-3 h-3" />timeout</span>
+                ) : (
+                  <span className="flex items-center gap-1 text-rose-500 font-semibold"><XCircle className="w-3 h-3" />failed</span>
+                )}
+              </td>
+              <td className="py-2 px-3 text-stone-400">{d.responseCode ?? '—'}</td>
+              <td className="py-2 px-3 text-stone-400">#{d.attempt}</td>
+              <td className="py-2 px-3 text-stone-400">{new Date(d.attemptedAt).toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 const EndpointCard: FC<{ ep: WebhookEndpoint; onDelete: (id: string) => void }> = ({ ep, onDelete }) => {
   const queryClient = useQueryClient();
+  const [showDeliveries, setShowDeliveries] = useState(false);
 
   const toggleMutation = useMutation({
     mutationFn: (active: boolean) => api.patch(`/webhook-endpoints/${ep.id}`, { active }),
@@ -254,6 +313,20 @@ const EndpointCard: FC<{ ep: WebhookEndpoint; onDelete: (id: string) => void }> 
           );
         })}
       </div>
+
+      <button
+        onClick={() => setShowDeliveries(v => !v)}
+        className="flex items-center gap-1.5 text-xs font-semibold text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors pt-1"
+      >
+        {showDeliveries ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        Delivery History
+      </button>
+
+      {showDeliveries && (
+        <div className="border border-stone-100 dark:border-stone-700 rounded-xl overflow-hidden">
+          <DeliveryLog endpointId={ep.id} />
+        </div>
+      )}
     </motion.div>
   );
 };

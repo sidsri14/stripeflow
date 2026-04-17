@@ -7,6 +7,12 @@ const mockFetch = mock(async (_url: string, _opts?: any): Promise<any> => ({
 }));
 (globalThis as any).fetch = mockFetch;
 
+// Mock prisma before importing the processor
+const mockCreate = mock(async () => ({}));
+mock.module('../utils/prisma.js', () => ({
+  prisma: { webhookDelivery: { create: mockCreate } },
+}));
+
 import { processWebhookDeliveryJob } from '../jobs/webhook.processor.js';
 
 function makeJob(data: object) {
@@ -24,7 +30,9 @@ describe('processWebhookDeliveryJob', () => {
 
   beforeEach(() => {
     mockFetch.mockClear();
+    mockCreate.mockClear();
     mockFetch.mockImplementation(async () => ({ ok: true, status: 200 }));
+    mockCreate.mockImplementation(async () => ({}));
   });
 
   test('calls fetch with correct headers and HMAC signature', async () => {
@@ -36,8 +44,18 @@ describe('processWebhookDeliveryJob', () => {
     expect(opts.headers['x-payrecover-signature']).toMatch(/^sha256=[a-f0-9]{64}$/);
   });
 
+  test('logs success delivery to DB', async () => {
+    await processWebhookDeliveryJob(makeJob(jobData));
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'success', endpointId: 'ep-1' }) })
+    );
+  });
+
   test('throws on non-2xx response so BullMQ retries', async () => {
     mockFetch.mockImplementation(async () => ({ ok: false, status: 503 }));
     await expect(processWebhookDeliveryJob(makeJob(jobData))).rejects.toThrow('Non-2xx response: 503');
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'failed', responseCode: 503 }) })
+    );
   });
 });

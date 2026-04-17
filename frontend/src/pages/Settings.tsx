@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FC, FormEvent } from 'react';
-import { Shield, CreditCard, Check, Zap, User, Loader2, Link2, Palette } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Shield, CreditCard, Check, Zap, User, Loader2, Link2, Palette, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api, API_URL } from '../api';
 import toast from 'react-hot-toast';
@@ -19,6 +20,26 @@ const Settings: FC<Props> = ({ user, onUpdateUser }) => {
   const [securityLoading, setSecurityLoading] = useState(false);
   const [setPassForm, setSetPassForm] = useState({ password: '', confirmPassword: '' });
   const [setPassLoading, setSetPassLoading] = useState(false);
+
+  const { data: billingData } = useQuery({
+    queryKey: ['billing-current'],
+    queryFn: async () => {
+      const { data } = await api.get('/billing/current');
+      return data.data as {
+        plan: string;
+        subscription: {
+          id: string;
+          provider: string;
+          providerSubscriptionId: string;
+          plan: string;
+          status: string;
+          currentPeriodEnd: string | null;
+          cancelledAt: string | null;
+        } | null;
+      };
+    },
+    staleTime: 60_000,
+  });
 
   const handleUpdatePlan = async (plan: 'free' | 'pro') => {
     setLoading(true);
@@ -187,6 +208,32 @@ const Settings: FC<Props> = ({ user, onUpdateUser }) => {
             )}
           </div>
         </div>
+
+        {billingData?.subscription && (
+          <div className="bg-stone-50 dark:bg-stone-900/50 border border-stone-200 dark:border-stone-700 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+            <Calendar className="w-5 h-5 text-stone-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-stone-700 dark:text-stone-200 capitalize">
+                {billingData.subscription.plan} plan · via {billingData.subscription.provider}
+              </p>
+              <p className="text-xs text-stone-400 mt-0.5 font-mono truncate">
+                {billingData.subscription.providerSubscriptionId}
+              </p>
+            </div>
+            <div className="text-right shrink-0">
+              {billingData.subscription.currentPeriodEnd ? (
+                <p className="text-sm font-semibold text-stone-700 dark:text-stone-200">
+                  Renews {new Date(billingData.subscription.currentPeriodEnd).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              ) : billingData.subscription.cancelledAt ? (
+                <p className="text-sm font-semibold text-rose-500">
+                  Cancelled {new Date(billingData.subscription.cancelledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              ) : null}
+              <p className="text-xs text-stone-400 uppercase tracking-wide mt-0.5">{billingData.subscription.status}</p>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Branding & Design */}

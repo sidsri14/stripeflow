@@ -7,14 +7,16 @@ import {
   updateEndpoint,
   deleteEndpoint,
   testEndpoint,
+  getDeliveries,
 } from '../controllers/webhookEndpoints.controller.js';
 
 const router = Router();
 
-router.get('/',        requireAuth,                   listEndpoints);
-router.post('/',       csrfCheck, requireAuth,         createEndpoint);
-router.patch('/:id',   csrfCheck, requireAuth,         updateEndpoint);
-router.delete('/:id',  csrfCheck, requireAuth,         deleteEndpoint);
-router.post('/:id/test', csrfCheck, requireAuth,       testEndpoint);
+router.get('/',               requireAuth,              listEndpoints);
+router.post('/',              csrfCheck, requireAuth,   createEndpoint);
+router.patch('/:id',          csrfCheck, requireAuth,   updateEndpoint);
+router.delete('/:id',         csrfCheck, requireAuth,   deleteEndpoint);
+router.post('/:id/test',      csrfCheck, requireAuth,   testEndpoint);
+router.get('/:id/deliveries', requireAuth,              getDeliveries);
 
 export default router;

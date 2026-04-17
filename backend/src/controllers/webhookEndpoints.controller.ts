@@ -131,3 +131,18 @@ export const testEndpoint = async (req: AuthRequest, res: Response, next: NextFu
     }
   } catch (err) { next(err); }
 };
+
+export const getDeliveries = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const id = String(req.params.id || '');
+    const ep = await prisma.webhookEndpoint.findFirst({ where: { id, userId: req.userId! }, select: { id: true } });
+    if (!ep) return errorResponse(res, 'Endpoint not found', 404);
+
+    const deliveries = await prisma.webhookDelivery.findMany({
+      where: { endpointId: id },
+      orderBy: { attemptedAt: 'desc' },
+      take: 50,
+    });
+    successResponse(res, deliveries);
+  } catch (err) { next(err); }
+};

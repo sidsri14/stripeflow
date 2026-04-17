@@ -23,6 +23,36 @@ export const createSubscription = async (req: AuthRequest, res: Response, next: 
   }
 };
 
+export const getSubscriptionStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { prisma } = await import('../utils/prisma.js');
+    const [user, subscription] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: req.userId! },
+        select: { plan: true },
+      }),
+      prisma.subscription.findFirst({
+        where: { userId: req.userId!, status: { in: ['active', 'authenticated', 'created'] } },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          provider: true,
+          providerSubscriptionId: true,
+          plan: true,
+          status: true,
+          currentPeriodStart: true,
+          currentPeriodEnd: true,
+          cancelledAt: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+    successResponse(res, { plan: user?.plan ?? 'free', subscription });
+  } catch (err) {
+    next(err);
+  }
+};
+
 /**
  * Directly updates the user's plan.
  * For production this should go through the Razorpay subscription webhook flow,

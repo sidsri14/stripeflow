@@ -199,15 +199,29 @@ model ApiKey {
 }
 
 model WebhookEndpoint {
-  id        String   @id @default(uuid())
+  id        String            @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  url       String   @db.VarChar(2048)
-  secret    String   // 32-byte random hex; merchant uses this to verify HMAC-SHA256 signature
-  events    String[] // e.g. ["payment.failed", "payment.recovered", "payment.abandoned"]
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String            @db.VarChar(2048)
+  secret    String
+  events    String[]
+  active    Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  deliveries WebhookDelivery[]
 
   @@index([userId])
+}
+
+model WebhookDelivery {
+  id          String          @id @default(uuid())
+  endpointId  String
+  endpoint    WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event       String
+  status      String          // "success" | "failed" | "timeout"
+  responseCode Int?
+  attempt     Int             @default(1)
+  attemptedAt DateTime        @default(now())
+
+  @@index([endpointId])
 }
