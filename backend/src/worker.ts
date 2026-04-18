@@ -19,6 +19,7 @@ import { processRecoveryJob } from './jobs/recovery.processor.js';
 import { processPruneJob } from './jobs/prune.processor.js';
 import { processWebhookDeliveryJob } from './jobs/webhook.processor.js';
 import { enqueuePrunePiiJob } from './jobs/recovery.queue.js';
+import { OutboundWebhookService } from './services/OutboundWebhookService.js';
 
 const ABANDON_AFTER_DAYS = 7;
 const ABANDON_INTERVAL_MS = 60 * 60 * 1000; // check every hour

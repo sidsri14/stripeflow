@@ -50,7 +50,7 @@ model Subscription {
   updatedAt           DateTime @updatedAt
 
   @@index([userId])
-  @@unique([userId, status])
+  @@index([userId, status])
 }
 
 model PaymentSource {
@@ -95,7 +95,7 @@ model FailedPayment {
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   eventId       String?       @unique
   event         PaymentEvent? @relation(fields: [eventId], references: [id])
-  paymentId     String        @unique
+  paymentId     String
   orderId       String?
   amount        Int
   currency      String        @default("INR")
@@ -119,6 +119,7 @@ model FailedPayment {
   @@index([status, nextRetryAt, lockedAt])
   @@index([status, nextRetryAt]) // worker query: pending/retrying payments due for retry
   @@index([userId, status, createdAt])
+  @@unique([userId, paymentId])
 }
 
 model RecoveryLink {

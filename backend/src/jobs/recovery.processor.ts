@@ -32,9 +32,14 @@ export async function processRecoveryJob(job: Job<RecoveryJobData>): Promise<voi
     return;
   }
 
-  // 2. Plan-based Guard (only starter/pro processed)
+  // 2. Plan-based Guard (only starter/pro processed for recovery emails)
   if (payment.user.plan === 'free') {
     logger.info({ failedPaymentId, userId: payment.userId }, 'Skipping recovery for Free plan user');
+    // Still dispatch outbound webhook so API integrations receive the event
+    void OutboundWebhookService.dispatch(payment.userId, 'payment.failed', {
+      id: payment.id, paymentId: payment.paymentId, amount: payment.amount,
+      currency: payment.currency, status: payment.status,
+    }).catch(() => {});
     return;
   }
 

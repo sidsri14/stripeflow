@@ -228,7 +228,7 @@ const Dashboard: FC<{ user: AuthUser }> = ({ user }) => {
 
           <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
             <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl" role="tablist" aria-label="Filter by status">
-              {['ALL', 'PENDING', 'RETRYING', 'RECOVERED'].map((s) => (
+              {['ALL', 'PENDING', 'RETRYING', 'RECOVERED', 'ABANDONED'].map((s) => (
                 <button
                   key={s}
                   onClick={() => setStatusFilter(s)}

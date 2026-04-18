@@ -45,9 +45,13 @@ export const manualRetry = async (req: AuthRequest, res: Response, next: NextFun
 export const exportPayments = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { prisma } = await import('../utils/prisma.js');
+    const allowedStatuses = ['recovered', 'pending', 'retrying', 'abandoned'];
+    const statusParam = String(req.query.status || 'recovered');
+    const statusFilter = allowedStatuses.includes(statusParam) ? statusParam : 'recovered';
+
     const payments = await prisma.failedPayment.findMany({
-      where: { userId: req.userId!, status: 'recovered' },
-      orderBy: { recoveredAt: 'desc' },
+      where: { userId: req.userId!, status: statusFilter },
+      orderBy: { createdAt: 'desc' },
       include: { event: { include: { source: true } } },
     });
 

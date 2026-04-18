@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { connectSource, getSources, deleteSource, testConnection } from '../controllers/source.controller.js';
+import { connectSource, getSources, deleteSource, updateSource, testConnection } from '../controllers/source.controller.js';
 import { requireAuth } from '../middleware/auth.middleware.js';
 import { csrfCheck } from '../middleware/csrf.middleware.js';
 import { planAwareLimiter } from '../middleware/rateLimit.middleware.js';
@@ -12,5 +12,6 @@ router.post('/connect', csrfCheck, requireAuth, planAwareLimiter, connectSource)
 router.post('/test-connection', csrfCheck, requireAuth, planAwareLimiter, validateRequest(testConnectionSchema), testConnection);
 router.get('/', requireAuth, planAwareLimiter, getSources);
 router.delete('/:id', csrfCheck, requireAuth, planAwareLimiter, deleteSource);
+router.patch('/:id', csrfCheck, requireAuth, planAwareLimiter, updateSource);
 
 export default router;

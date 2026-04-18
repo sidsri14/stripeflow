@@ -95,6 +95,7 @@ export class RazorpayProvider extends BaseProvider {
           currency: entity.currency || 'INR',
           customerEmail: entity.email || payload.customer?.entity?.email || '',
           customerPhone: entity.contact || payload.customer?.entity?.contact || '',
+          customerName: entity.notes?.customer_name || payload.customer?.entity?.name || undefined,
           status: 'failed',
           rawData: JSON.stringify(body),
         };

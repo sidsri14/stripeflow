@@ -36,6 +36,22 @@ export const deletePaymentSource = async (userId: string, id: string) => {
   await prisma.paymentSource.delete({ where: { id } });
 };
 
+export const updatePaymentSource = async (userId: string, id: string, data: { name?: string; credentials?: any; webhookSecret?: string }) => {
+  const s = await prisma.paymentSource.findFirst({ where: { id, userId } });
+  if (!s) throw { status: 404, message: 'Source not found' };
+
+  const updateData: any = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.credentials !== undefined) updateData.credentials = encrypt(JSON.stringify(data.credentials));
+  if (data.webhookSecret !== undefined) updateData.webhookSecret = encrypt(data.webhookSecret);
+
+  return prisma.paymentSource.update({
+    where: { id },
+    data: updateData,
+    select: { id: true, userId: true, provider: true, name: true, createdAt: true },
+  });
+};
+
 export const getSourceWithSecrets = async (id: string) => {
   const s = await prisma.paymentSource.findUnique({ where: { id } });
   if (!s) return null;

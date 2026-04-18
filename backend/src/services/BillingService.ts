@@ -36,6 +36,7 @@ export class BillingService {
       data: {
         userId,
         providerSubscriptionId: subscription.id,
+        provider: 'razorpay',
         plan,
         status: 'created',
       },
