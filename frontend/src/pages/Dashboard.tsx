@@ -98,7 +98,7 @@ const Dashboard: FC<{ user: AuthUser }> = ({ user }) => {
   const onboardingComplete = hasSources && hasFailure && hasRecovery;
 
   const toggleSort = (key: 'status' | 'amount' | 'createdAt' | 'retryCount') => {
-    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir('desc'); }
   };
 
@@ -323,14 +323,14 @@ const Dashboard: FC<{ user: AuthUser }> = ({ user }) => {
               </span>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setPage((p: number) => Math.max(1, p - 1))}
+                  onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
                   className="px-3 py-1.5 text-xs font-semibold border border-stone-200 dark:border-stone-700 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-40"
                 >
                   Previous
                 </button>
                 <button
-                  onClick={() => setPage((p: number) => Math.min(totalPages, p + 1))}
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page >= totalPages}
                   className="px-3 py-1.5 text-xs font-semibold border border-stone-200 dark:border-stone-700 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-800 disabled:opacity-40"
                 >

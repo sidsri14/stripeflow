@@ -272,3 +272,35 @@ export const sendContactEmail = async (params: {
 
   await sendMail(to, subject, text);
 };
+// ── Email 6: Team invitation ───────────────────────────────────────────────────
+export const sendTeamInviteEmail = async (
+  to: string,
+  params: {
+    inviterName: string;
+    organizationName: string;
+    inviteLink: string;
+  }
+): Promise<void> => {
+  const subject = `You've been invited to join ${params.organizationName} on PayRecover`;
+  const text = `Hi,
+
+${params.inviterName} has invited you to join their organization "${params.organizationName}" on PayRecover.
+
+Access your dashboard here:
+→ ${params.inviteLink}
+
+If you don't have an account yet, please register using this email address.
+
+──────────────────────────────────────────────────
+Powered by PayRecover`;
+
+  const html = getBaseLayout(
+    `<p><strong>${params.inviterName}</strong> has invited you to join their organization "<strong>${params.organizationName}</strong>" on PayRecover.</p>
+     <p>You can now access the shared dashboard and collaborate on payment recovery.</p>`,
+    params.inviteLink,
+    'Go to Dashboard',
+    { primaryColor: '#10b981' }
+  );
+
+  await sendMail(to, subject, text, html);
+};

@@ -33,22 +33,24 @@ export async function processWebhookDeliveryJob(job: Job): Promise<void> {
       signal: controller.signal,
     });
 
+    const respText = (await res.text()).slice(0, 2048); // Capture and truncate for DB safety
+
     if (!res.ok) {
       await prisma.webhookDelivery.create({
-        data: { endpointId, event, status: 'failed', responseCode: res.status, attempt },
+        data: { endpointId, event, status: 'failed', responseCode: res.status, responseBody: respText, attempt },
       }).catch(() => {});
       logger.warn({ endpointId, url, status: res.status, event }, '[Webhook] Non-2xx — BullMQ will retry');
       throw new Error(`Non-2xx response: ${res.status}`);
     }
 
     await prisma.webhookDelivery.create({
-      data: { endpointId, event, status: 'success', responseCode: res.status, attempt },
+      data: { endpointId, event, status: 'success', responseCode: res.status, responseBody: respText, attempt },
     }).catch(() => {});
     logger.info({ endpointId, url, status: res.status, event }, '[Webhook] Delivered');
   } catch (err: any) {
     if (err?.name === 'AbortError') {
       await prisma.webhookDelivery.create({
-        data: { endpointId, event, status: 'timeout', attempt },
+        data: { endpointId, event, status: 'timeout', responseBody: 'Target URL timed out', attempt },
       }).catch(() => {});
     }
     const reason = err?.name === 'AbortError' ? 'timeout' : err?.message;

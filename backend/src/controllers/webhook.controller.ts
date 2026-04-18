@@ -88,7 +88,7 @@ const handleFail = async (srcId: string, uId: string, data: any) => {
       },
     });
 
-    if (!(await tx.failedPayment.findUnique({ where: { userId_paymentId: { userId: uId, paymentId: data.paymentId } } }))) {
+    if (!(await tx.failedPayment.findFirst({ where: { userId: uId, paymentId: data.paymentId } }))) {
       const fp = await tx.failedPayment.create({
         data: { 
           userId: uId, 

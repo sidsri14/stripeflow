@@ -221,6 +221,7 @@ model WebhookDelivery {
   event       String
   status      String          // "success" | "failed" | "timeout"
   responseCode Int?
+  responseBody String?
   attempt     Int             @default(1)
   attemptedAt DateTime        @default(now())
 

@@ -111,8 +111,18 @@ export const inviteUser = async (req: AuthRequest, res: Response, next: NextFunc
         userId: userToInvite.id,
         organizationId: orgId,
         role,
-      }
+      },
+      include: { organization: true, user: true }
     });
+
+    const inviter = await prisma.user.findUnique({ where: { id: req.userId! } });
+    const { sendTeamInviteEmail } = await import('../services/email.service.js');
+    
+    void sendTeamInviteEmail(userToInvite.email, {
+      inviterName: inviter?.name || 'A teammate',
+      organizationName: newMember.organization.name,
+      inviteLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard`,
+    }).catch(err => console.error('[InviteEmail] Failed to send:', err));
 
     successResponse(res, newMember, 201);
   } catch (err) { next(err); }
