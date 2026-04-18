@@ -10,6 +10,7 @@ const router = Router();
 // Protected routes — csrfCheck + requireAuth per-route (avoids Express 5 router.use() edge case)
 router.get('/current', requireAuth, getSubscriptionStatus);
 router.post('/create-subscription', csrfCheck, requireAuth, validateRequest(createSubscriptionSchema), createSubscription);
+router.post('/create-checkout', csrfCheck, requireAuth, validateRequest(createSubscriptionSchema), createSubscription);
 router.patch('/plan', csrfCheck, requireAuth, validateRequest(updatePlanSchema), updatePlan);
 
 export default router;

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
@@ -8,15 +9,43 @@ export const PAGE_SIZE = 10;
 
 export function useDashboardData(currentUser: AuthUser | null) {
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [sortKey, setSortKey] = useState<'status' | 'amount' | 'createdAt' | 'retryCount'>('createdAt');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [sourceFilter, setSourceFilter] = useState('ALL');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const page = Math.max(1, Number(searchParams.get('page') || 1));
+  const search = searchParams.get('search') || '';
+  const statusFilter = searchParams.get('status') || 'ALL';
+  const sortKey = (searchParams.get('sortKey') as 'status' | 'amount' | 'createdAt' | 'retryCount') || 'createdAt';
+  const sortDir = (searchParams.get('sortDir') as 'asc' | 'desc') || 'desc';
+  const sourceFilter = searchParams.get('source') || 'ALL';
+
+  const setParam = (key: string, value: string, resetPage = true) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (value && value !== 'ALL' && value !== 'createdAt' && !(key === 'sortDir' && value === 'desc')) {
+        next.set(key, value);
+      } else {
+        next.delete(key);
+      }
+      if (resetPage) next.delete('page');
+      return next;
+    }, { replace: true });
+  };
+
+  const setPage = (p: number) => setSearchParams(prev => {
+    const next = new URLSearchParams(prev);
+    if (p > 1) next.set('page', String(p)); else next.delete('page');
+    return next;
+  }, { replace: true });
+
+  const setSearch = (v: string) => setParam('search', v);
+  const setStatusFilter = (v: string) => setParam('status', v);
+  const setSortKey = (v: 'status' | 'amount' | 'createdAt' | 'retryCount') => setParam('sortKey', v);
+  const setSortDir = (v: 'asc' | 'desc') => setParam('sortDir', v);
+  const setSourceFilter = (v: string) => setParam('source', v);
+
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null);
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 350);
@@ -105,16 +134,6 @@ export function useDashboardData(currentUser: AuthUser | null) {
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     },
   });
-
-  // Pagination helper - Reset to page 1 on filter/search change
-  // Note: We use a ref-like comparison or effect to avoid infinite loops if needed, 
-  // but here we just want to ensure page resets when "upstream" filters change.
-  // To satisfy the linter, we would ideally do this in setters, but for now, 
-  // we'll disable the warning as this is a common pattern for pagination resets.
-  useEffect(() => {
-    if (page !== 1) setPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statusFilter, sourceFilter, sortKey, sortDir]);
 
   const stats = statsData || { totalLost: 0, totalRecovered: 0, recoveredCount: 0, sourcesCount: 0 };
   const payments = useMemo(() => paymentsPage?.payments || [], [paymentsPage?.payments]);

@@ -195,7 +195,7 @@ const Settings: FC<Props> = ({ user, onUpdateUser }) => {
             <ul className="space-y-3 mb-8">
               <li className="flex items-center gap-2 text-sm text-stone-700 dark:text-stone-200 font-medium"><Check className="w-4 h-4 text-emerald-500" /> Automated recovery worker</li>
               <li className="flex items-center gap-2 text-sm text-stone-700 dark:text-stone-200 font-medium"><Check className="w-4 h-4 text-emerald-500" /> High-conversion email templates</li>
-              <li className="flex items-center gap-2 text-sm text-stone-700 dark:text-stone-200 font-medium"><Check className="w-4 h-4 text-emerald-500" /> Custom branding (coming soon)</li>
+              <li className="flex items-center gap-2 text-sm text-stone-700 dark:text-stone-200 font-medium"><Check className="w-4 h-4 text-emerald-500" /> Custom branding</li>
             </ul>
             {user.plan === 'free' ? (
               <button onClick={() => handleCheckout('pro')} disabled={loading} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
