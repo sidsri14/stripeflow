@@ -176,10 +176,11 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
                   innerRadius={60}
                   outerRadius={80}
                   paddingAngle={8}
+                  cornerRadius={4}
                   dataKey="value"
                 >
                   {platformData.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} cornerRadius={4} />
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip 
