@@ -23,18 +23,16 @@ model User {
   // Password reset
   passwordResetToken    String?         @unique
   passwordResetExpiry   DateTime?
-  sources               PaymentSource[]
-  failedPayments        FailedPayment[]
   subscriptions         Subscription[]
   memberships           Membership[]
   auditLogs             AuditLog[]
   webhookEndpoints      WebhookEndpoint[]
   apiKeys               ApiKey[]
-  clients               Client[]
-  invoices              Invoice[]
   brandSettings         String?         // JSON: { logoUrl, primaryColor, accentColor, companyName, emailSignature }
   brandEmailSubject     String?         // Custom recovery subject
   brandEmailTone        String?         @default("professional") // professional | friendly | urgent
+  clients               Client[]
+  invoices              Invoice[]
 }
 
 model Subscription {
@@ -55,100 +53,6 @@ model Subscription {
   @@index([userId, status])
 }
 
-model PaymentSource {
-  id            String         @id @default(uuid())
-  userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organizationId String?
-  organization  Organization?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  provider      String         @default("razorpay")
-  name          String?
-  credentials   String         // Encrypted JSON blob containing keyId, keySecret, webhookSecret, etc.
-  webhookSecret String         // Keeping this top-level for fast signature verification lookup if possible, or moving to credentials
-  createdAt     DateTime       @default(now())
-  events        PaymentEvent[]
-
-  @@index([userId])
-  @@index([organizationId])
-}
-
-model PaymentEvent {
-  id              String        @id @default(uuid())
-  sourceId        String
-  source          PaymentSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  providerEventId String        @unique // Genericized from razorpayEventId
-  eventType       String
-  paymentId       String
-  amount          Int
-  email           String
-  contact         String?
-  status          String
-  rawData         String
-  createdAt       DateTime      @default(now())
-  failedPayment   FailedPayment?
-
-  @@index([sourceId])
-  @@index([paymentId])
-}
-
-model FailedPayment {
-  id            String        @id @default(uuid())
-  userId        String
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  eventId       String?       @unique
-  event         PaymentEvent? @relation(fields: [eventId], references: [id])
-  paymentId     String
-  orderId       String?
-  amount        Int
-  currency      String        @default("INR")
-  customerEmail String
-  customerPhone String?
-  customerName  String?
-  status        String        @default("pending")
-  retryCount    Int           @default(0)
-  lastRetryAt   DateTime?
-  nextRetryAt   DateTime?
-  lockedAt      DateTime?     // For advisory locking in background jobs
-  recoveredAt   DateTime?
-  clickCount    Int           @default(0)
-  recoveredVia  String?       // "link" | "external"
-  metadata      String?
-  createdAt     DateTime      @default(now())
-  reminders     Reminder[]
-  recoveryLinks RecoveryLink[]
-
-  @@index([userId])
-  @@index([status, nextRetryAt, lockedAt])
-  @@index([status, nextRetryAt]) // worker query: pending/retrying payments due for retry
-  @@index([userId, status, createdAt])
-  @@unique([userId, paymentId])
-}
-
-model RecoveryLink {
-  id              String        @id @default(uuid())
-  failedPaymentId String
-  failedPayment   FailedPayment @relation(fields: [failedPaymentId], references: [id], onDelete: Cascade)
-  url             String
-  expiresAt       DateTime?     // Expiration metadata for the recovery link
-  usedAt          DateTime?     // set when the recovery link is first clicked
-  createdAt       DateTime      @default(now())
-
-  @@index([failedPaymentId])
-}
-
-model Reminder {
-  id              String        @id @default(uuid())
-  failedPaymentId String
-  failedPayment   FailedPayment @relation(fields: [failedPaymentId], references: [id], onDelete: Cascade)
-  type            String
-  dayOffset       Int
-  sentAt          DateTime      @default(now())
-  status          String        @default("sent")
-  failedAt        DateTime?
-
-  @@index([failedPaymentId])
-}
-
 model AuditLog {
   id         String   @id @default(uuid())
   userId     String?
@@ -167,7 +71,6 @@ model Organization {
   id          String       @id @default(uuid())
   name        String       @db.VarChar(100)
   members     Membership[]
-  sources     PaymentSource[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 }
@@ -231,38 +134,62 @@ model WebhookDelivery {
 }
 
 model Client {
-  id        String    @id @default(uuid())
+  id        String    @id @default(cuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
   email     String
   phone     String?
   company   String?
   createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   invoices  Invoice[]
 
+  @@unique([userId, email])
   @@index([userId])
 }
 
 model Invoice {
-  id               String   @id @default(uuid())
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  clientId         String?
-  client           Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  description      String
-  amount           Int      // In cents (USD)
-  currency         String   @default("USD")
-  status           String   @default("pending") // pending | paid | overdue | cancelled
-  dueDate          DateTime
-  pdfUrl           String?
-  stripeSessionId  String?  @unique
-  clientEmail      String   // Redundant but useful for quick access/non-linked clients
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                    String        @id @default(cuid())
+  userId                String
+  clientId              String
+  number                String
+  status                InvoiceStatus @default(DRAFT)
+  amountCents           Int
+  currency              String        @default("USD")
+  description           String
+  dueDate               DateTime
+  stripeSessionId       String?
+  stripePaymentIntentId String?
+  remindersSent         Int           @default(0)
+  paidAt                DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client                Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  items                 InvoiceItem[]
 
+  @@unique([userId, number])
   @@index([userId])
-  @@index([clientId])
-  @@index([status])
+  @@index([userId, status])
+  @@index([status, dueDate])
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Int
+  unitCents   Int
+  totalCents  Int
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
 }
