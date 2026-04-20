@@ -1,141 +1,113 @@
-import PdfPrinter from 'pdfmake/src/printer';
-import { TDocumentDefinitions } from 'pdfmake/interfaces';
-import fs from 'fs';
-import path from 'path';
-
-const fonts = {
-  Roboto: {
-    normal: path.resolve('public/fonts/Roboto-Regular.ttf'),
-    bold: path.resolve('public/fonts/Roboto-Medium.ttf'),
-    italics: path.resolve('public/fonts/Roboto-Italic.ttf'),
-    bolditalics: path.resolve('public/fonts/Roboto-MediumItalic.ttf')
-  }
-};
-
-// For now, if fonts aren't available, we'll need to handle that. 
-// Standard pdfmake often uses virtual font systems, but in Node we use standard TTF.
-// I'll create a fallback or just use standard fonts if possible.
-// Actually, I'll use a simpler approach for the initial implementation.
+import { jsPDF } from 'jspdf';
 
 export class PdfService {
   /**
    * Generates a PDF buffer for the invoice.
    */
   static async generateInvoicePdf(invoice: any, user: any, client: any): Promise<Buffer> {
-    const printer = new PdfPrinter({
-      Roboto: {
-        normal: 'Helvetica',
-        bold: 'Helvetica-Bold',
-        italics: 'Helvetica-Oblique',
-        bolditalics: 'Helvetica-BoldOblique'
-      }
+    // Create a new PDF document (A4 size, units in points)
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'a4'
     });
 
-    const docDefinition: TDocumentDefinitions = {
-      content: [
-        {
-          columns: [
-            {
-              text: 'StripeFlow',
-              style: 'header',
-              width: '*'
-            },
-            {
-              stack: [
-                { text: 'INVOICE', style: 'invoiceLabel' },
-                { text: `#${invoice.id.slice(-8).toUpperCase()}`, style: 'invoiceNumber' }
-              ],
-              alignment: 'right',
-              width: 150
-            }
-          ]
-        },
-        { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 1, lineColor: '#eee' }], margin: [0, 20] },
-        {
-          columns: [
-            {
-              stack: [
-                { text: 'FROM:', style: 'subHeader' },
-                { text: user.name || user.email, style: 'body' },
-                { text: user.email, style: 'bodySmall' },
-                { text: user.companyName || '', style: 'bodySmall' }
-              ]
-            },
-            {
-              stack: [
-                { text: 'BILL TO:', style: 'subHeader' },
-                { text: client.name, style: 'body' },
-                { text: client.email, style: 'bodySmall' },
-                { text: client.company || '', style: 'bodySmall' }
-              ],
-              alignment: 'right'
-            }
-          ]
-        },
-        { margin: [0, 40], table: {
-          widths: ['*', 100, 100],
-          body: [
-            [
-              { text: 'Description', style: 'tableHeader' },
-              { text: 'Quantity', style: 'tableHeader', alignment: 'center' },
-              { text: 'Amount', style: 'tableHeader', alignment: 'right' }
-            ],
-            [
-              { text: invoice.description, style: 'tableBody' },
-              { text: '1', style: 'tableBody', alignment: 'center' },
-              { text: `$${(invoice.amount / 100).toFixed(2)}`, style: 'tableBody', alignment: 'right' }
-            ]
-          ]
-        }, layout: 'lightHorizontalLines' },
-        {
-          columns: [
-            { text: '', width: '*' },
-            {
-              stack: [
-                {
-                  columns: [
-                    { text: 'Total Amount Due:', bold: true },
-                    { text: `$${(invoice.amount / 100).toFixed(2)}`, alignment: 'right', bold: true }
-                  ]
-                },
-                { text: `Due by: ${new Date(invoice.dueDate).toDateString()}`, margin: [0, 10], color: '#666', fontSize: 10 }
-              ],
-              width: 200
-            }
-          ]
-        },
-        {
-          text: 'Payment Instructions',
-          style: 'subHeader',
-          margin: [0, 40, 0, 10]
-        },
-        {
-          text: 'Please use the link sent to your email or scan the QR code to complete the payment via Stripe.',
-          style: 'bodySmall'
-        }
-      ],
-      styles: {
-        header: { fontSize: 24, bold: true, color: '#000' },
-        invoiceLabel: { fontSize: 10, color: '#666', margin: [0, 0, 0, 2] },
-        invoiceNumber: { fontSize: 14, bold: true },
-        subHeader: { fontSize: 10, bold: true, color: '#666', margin: [0, 0, 0, 5], textTransform: 'uppercase' },
-        body: { fontSize: 12, margin: [0, 0, 0, 2] },
-        bodySmall: { fontSize: 10, color: '#666' },
-        tableHeader: { fontSize: 10, bold: true, color: '#666', margin: [0, 5] },
-        tableBody: { fontSize: 11, margin: [0, 8] }
-      },
-      defaultStyle: {
-        font: 'Roboto'
-      }
-    };
+    const margin = 40;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 60;
 
-    return new Promise((resolve, reject) => {
-      const pdfDoc = printer.createPdfKitDocument(docDefinition);
-      const chunks: any[] = [];
-      pdfDoc.on('data', (chunk) => chunks.push(chunk));
-      pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
-      pdfDoc.on('error', (err) => reject(err));
-      pdfDoc.end();
-    });
+    // Header: StripeFlow
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(28);
+    doc.setTextColor(17, 24, 39); // Charcoal
+    doc.text('StripeFlow', margin, y);
+
+    // Invoice Label & ID
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128); // Gray
+    doc.text('INVOICE', pageWidth - margin, y - 15, { align: 'right' });
+    doc.setFontSize(14);
+    doc.setTextColor(17, 24, 39);
+    doc.text(`#${invoice.id.slice(-8).toUpperCase()}`, pageWidth - margin, y, { align: 'right' });
+
+    y += 40;
+    doc.setDrawColor(229, 231, 235);
+    doc.line(margin, y, pageWidth - margin, y);
+
+    y += 40;
+    // From / Bill To
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text('FROM:', margin, y);
+    doc.text('BILL TO:', pageWidth - margin, y, { align: 'right' });
+
+    y += 15;
+    doc.setFontSize(12);
+    doc.setTextColor(17, 24, 39);
+    doc.text(user.name || user.email, margin, y);
+    doc.text(client.name, pageWidth - margin, y, { align: 'right' });
+
+    y += 15;
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text(user.email, margin, y);
+    doc.text(client.email, pageWidth - margin, y, { align: 'right' });
+
+    if (user.companyName) {
+      y += 15;
+      doc.text(user.companyName, margin, y);
+    }
+
+    y += 60;
+    // Table Header
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(107, 114, 128);
+    doc.text('Description', margin, y);
+    doc.text('Amount', pageWidth - margin, y, { align: 'right' });
+
+    y += 10;
+    doc.line(margin, y, pageWidth - margin, y);
+
+    y += 25;
+    // Item
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(17, 24, 39);
+    doc.setFontSize(11);
+    doc.text(invoice.description, margin, y);
+    doc.text(`$${(invoice.amount / 100).toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+
+    y += 10;
+    doc.setDrawColor(243, 244, 246);
+    doc.line(margin, y, pageWidth - margin, y);
+
+    y += 50;
+    // Total
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Total Amount Due:', pageWidth - 200, y);
+    doc.text(`$${(invoice.amount / 100).toFixed(2)}`, pageWidth - margin, y, { align: 'right' });
+
+    y += 20;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Due by: ${new Date(invoice.dueDate).toDateString()}`, pageWidth - margin, y, { align: 'right' });
+
+    y += 80;
+    // Payment Instructions
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text('PAYMENT INSTRUCTIONS', margin, y);
+
+    y += 15;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('Please use the dynamic checkout link sent to your email to complete the payment via Stripe.', margin, y);
+
+    // Return as Buffer
+    const arrayBuffer = doc.output('arraybuffer');
+    return Buffer.from(arrayBuffer);
   }
 }
