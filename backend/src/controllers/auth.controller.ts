@@ -180,27 +180,15 @@ export const sendTestEmail = async (req: AuthRequest, res: Response, next: NextF
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId! },
-      select: { email: true, name: true, brandSettings: true, brandEmailSubject: true, brandEmailTone: true }
+      select: { email: true, name: true },
     });
 
     if (!user) return errorResponse(res, 'User not found', 404);
 
-    let branding: any = {};
-    if (user.brandSettings) {
-      try { branding = JSON.parse(user.brandSettings as any); } catch (e) {}
-    }
-    branding.emailSubject = user.brandEmailSubject || branding.emailSubject;
-    branding.emailTone = user.brandEmailTone || branding.emailTone;
-
-    const { sendPaymentFailedEmail } = await import('../services/email.service.js');
-    
-    await sendPaymentFailedEmail(user.email, {
-      customerName: user.name || 'Test User',
-      amount: 149900, // ₹1,499.00
-      currency: 'INR',
-      paymentLink: (process.env.FRONTEND_URL || 'http://localhost:5173') + '/dashboard?test=1',
-      paymentId: 'pay_test_12345'
-    }, branding);
+    const { sendEmailVerificationEmail } = await import('../services/email.service.js');
+    await sendEmailVerificationEmail(user.email, {
+      verifyLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=test`,
+    });
 
     successResponse(res, { message: 'Test email dispatched' });
   } catch (err) { next(err); }

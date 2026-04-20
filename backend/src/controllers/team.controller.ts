@@ -116,13 +116,13 @@ export const inviteUser = async (req: AuthRequest, res: Response, next: NextFunc
     });
 
     const inviter = await prisma.user.findUnique({ where: { id: req.userId! } });
-    const { sendTeamInviteEmail } = await import('../services/email.service.js');
-    
-    void sendTeamInviteEmail(userToInvite.email, {
-      inviterName: inviter?.name || 'A teammate',
-      organizationName: newMember.organization.name,
-      inviteLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard`,
-    }).catch(err => console.error('[InviteEmail] Failed to send:', err));
+    const { sendEmail } = await import('../services/resend.service.js');
+    const inviteLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard`;
+    void sendEmail({
+      to: userToInvite.email,
+      subject: `You've been invited to join ${newMember.organization.name} on StripeFlow`,
+      html: `<h2>Team Invitation</h2><p><strong>${inviter?.name || 'A teammate'}</strong> has invited you to join <strong>${newMember.organization.name}</strong> on StripeFlow.</p><p><a href="${inviteLink}" style="background:#000;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;">Go to Dashboard</a></p>`,
+    }).catch((err: unknown) => console.error('[InviteEmail] Failed to send:', err));
 
     successResponse(res, newMember, 201);
   } catch (err) { next(err); }
