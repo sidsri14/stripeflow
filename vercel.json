@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "name": "stripe-pay",
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    },
+    {
+      "src": "backend/src/app.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "backend/src/app.ts"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "frontend/index.html"
+    }
+  ]
+}

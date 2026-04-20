@@ -14,7 +14,7 @@ const InvoiceList: FC = () => {
     queryKey: ['invoices'],
     queryFn: async () => {
       const { data } = await api.get('/invoices');
-      return data.data;
+      return data.data.invoices;
     }
   });
 

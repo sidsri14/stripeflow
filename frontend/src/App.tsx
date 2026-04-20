@@ -25,6 +25,9 @@ const Privacy = lazy(() => import('./pages/Privacy'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Team = lazy(() => import('./pages/Team'));
 const Security = lazy(() => import('./pages/Security'));
+const Branding = lazy(() => import('./pages/Branding'));
+const Webhooks = lazy(() => import('./pages/Webhooks'));
+const ApiKeys = lazy(() => import('./pages/ApiKeys'));
 
 export type AuthUser = {
   id: string;
@@ -316,6 +319,9 @@ function App() {
                     <Route path="/settings" element={<Settings user={user} onUpdateUser={(u) => setUser(u)} />} />
                     <Route path="/security" element={<Security />} />
                     <Route path="/team" element={<Team />} />
+                    <Route path="/branding" element={<Branding />} />
+                    <Route path="/webhooks" element={<Webhooks />} />
+                    <Route path="/api-keys" element={<ApiKeys />} />
                     <Route path="*" element={<Navigate to="/dashboard" />} />
                   </Routes>
                 </Layout>
