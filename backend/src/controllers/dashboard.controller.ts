@@ -6,16 +6,27 @@ import { successResponse } from '../utils/apiResponse.js';
 export const getDashboardStats = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.userId!;
-    const [total, paid, outstanding] = await Promise.all([
+    const [total, paid, overdue, pending] = await Promise.all([
       prisma.invoice.aggregate({ where: { userId }, _sum: { amount: true }, _count: true }),
-      prisma.invoice.aggregate({ where: { userId, status: 'PAID' }, _sum: { amount: true } }),
-      prisma.invoice.aggregate({ where: { userId, status: { in: ['SENT', 'OVERDUE'] } }, _sum: { amount: true } }),
+      prisma.invoice.aggregate({ where: { userId, status: 'PAID' }, _sum: { amount: true }, _count: true }),
+      prisma.invoice.aggregate({ where: { userId, status: 'OVERDUE' }, _count: true }),
+      prisma.invoice.aggregate({ where: { userId, status: 'PENDING' }, _count: true }),
     ]);
+
+    const totalVolume = total._sum.amount ?? 0;
+    const paidVolume = paid._sum.amount ?? 0;
+
     successResponse(res, {
-      totalInvoicedCents: total._sum.amount ?? 0,
-      totalCollectedCents: paid._sum.amount ?? 0,
-      outstandingCents: outstanding._sum.amount ?? 0,
-      invoiceCount: total._count,
+      totalVolume,
+      paidVolume,
+      paidRate: totalVolume > 0 ? Math.round((paidVolume / totalVolume) * 100) : 0,
+      counts: {
+        pending: pending._count,
+        paid: paid._count,
+        overdue: overdue._count,
+        abandoned: 0,
+      },
+      timeseries: [] // Placeholder
     });
   } catch (err) { next(err); }
 };
@@ -28,6 +39,6 @@ export const getMetrics = async (req: AuthRequest, res: Response, next: NextFunc
       prisma.invoice.aggregate({ where: { userId, createdAt: { gte: startOfMonth } }, _count: true }),
       prisma.invoice.count({ where: { userId, status: 'OVERDUE' } }),
     ]);
-    successResponse(res, { invoicesThisMonth: thisMonth._count, overdueCount: overdue });
+    successResponse(res, { paidThisMonth: 0, overdueCount: overdue });
   } catch (err) { next(err); }
 };

@@ -28,6 +28,7 @@ import { prisma } from './utils/prisma.js';
 import { redisConnection } from './jobs/recovery.queue.js';
 import './config/passport.js';
 import passport from 'passport';
+import demoRoutes from './routes/demo.routes.js';
 
 import cors from 'cors';
 
@@ -68,8 +69,9 @@ app.use(cookieParser());
 // ── CORS Middleware
 app.use(cors({
   origin: (origin, callback) => {
-    const whitelist = [...parsedAllowed, 'http://localhost:5173'];
-    if (!origin || whitelist.includes(origin) || origin.endsWith('.vercel.app')) {
+    const whitelist = [...parsedAllowed, 'http://localhost:5173', 'http://localhost:5174'];
+    const isDev = process.env.NODE_ENV === 'development';
+    if (!origin || whitelist.includes(origin) || origin.endsWith('.vercel.app') || (isDev && origin.startsWith('http://localhost:'))) {
       callback(null, true);
     } else {
       callback(new Error(`CORS blocked for origin: ${origin}`));
@@ -199,6 +201,7 @@ app.use('/api/security', auditRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/demo', demoRoutes);
 
 // Error Handling
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {

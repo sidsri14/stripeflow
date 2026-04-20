@@ -31,14 +31,14 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
     },
     {
       label: 'Pending Invoices',
-      value: stats?.counts.pending ?? 0,
+      value: stats?.counts?.pending ?? 0,
       sub: 'Awaiting payment',
       icon: <RotateCcw className="w-5 h-5 text-blue-500" />,
       color: 'blue',
     },
     {
       label: 'Overdue Invoices',
-      value: stats?.counts.overdue ?? 0,
+      value: stats?.counts?.overdue ?? 0,
       sub: 'Requires attention',
       icon: <AlertTriangle className="w-5 h-5 text-rose-500" />,
       color: 'rose',
