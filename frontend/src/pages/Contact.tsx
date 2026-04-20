@@ -53,8 +53,8 @@ const Contact = () => {
               </div>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-stone-400">Direct Support</p>
-                <a href="mailto:support@payrecover.com" className="text-lg font-bold text-stone-800 dark:text-stone-100 hover:text-emerald-500 transition-colors">
-                  support@payrecover.com
+                <a href="mailto:support@stripepay.com" className="text-lg font-bold text-stone-800 dark:text-stone-100 hover:text-emerald-500 transition-colors">
+                  support@stripepay.com
                 </a>
               </div>
             </div>
@@ -85,7 +85,7 @@ const Contact = () => {
                 className="space-y-6"
               >
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-stone-400">Your Name</label>
+                  <label htmlFor="reg-name" className="text-xs font-semibold uppercase tracking-wider text-stone-400 ml-1">Full Name</label>
                   <input
                     required
                     name="name"
@@ -144,6 +144,9 @@ const Contact = () => {
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
                 <h3 className="text-2xl font-black text-stone-800 dark:text-white">Message Dispatched!</h3>
+                <p className="text-center text-stone-400 mb-8 font-medium text-sm">
+                  Create your account to get started.
+                </p>
                 <p className="text-stone-500 dark:text-stone-400 font-medium">
                   We've received your request and will get back to you within 12 hours.
                 </p>

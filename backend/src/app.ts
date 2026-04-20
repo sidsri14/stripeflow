@@ -18,8 +18,8 @@ import webhookEndpointRoutes from './routes/webhookEndpoints.routes.js';
 import apiKeyRoutes from './routes/apiKeys.routes.js';
 import auditRoutes from './routes/audit.routes.js';
 import contactRoutes from './routes/contact.routes.js';
-import invoiceRoutes from './routes/invoice.routes.ts';
-import clientRoutes from './routes/client.routes.ts';
+import invoiceRoutes from './routes/invoice.routes.js';
+import clientRoutes from './routes/client.routes.js';
 import { Queue } from 'bullmq';
 import { billingWebhook, stripeBillingWebhook } from './controllers/billing.controller.js';
 import { requireAuth } from './middleware/auth.middleware.js';
@@ -119,7 +119,7 @@ app.get('/api/csrf-token', (_req, res) => {
 });
 
 // Health Check
-const HEARTBEAT_KEY = 'payrecover:worker:heartbeat';
+const HEARTBEAT_KEY = 'stripepay:worker:heartbeat';
 const WORKER_STALE_MS = 150_000; // matches worker TTL
 
 app.get('/health', async (_req, res) => {

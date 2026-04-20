@@ -16,11 +16,11 @@ export class PdfService {
     const pageWidth = doc.internal.pageSize.getWidth();
     let y = 60;
 
-    // Header: StripeFlow
+    // Header: StripePay
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(28);
     doc.setTextColor(17, 24, 39); // Charcoal
-    doc.text('StripeFlow', margin, y);
+    doc.text('StripePay', margin, y);
 
     // Invoice Label & ID
     doc.setFontSize(10);

@@ -10,9 +10,9 @@ const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard')); // Now showing stats
-const InvoiceList = lazy(() => import('./pages/InvoiceList'));
-const CreateInvoice = lazy(() => import('./pages/CreateInvoice'));
-const Clients = lazy(() => import('./pages/Clients'));
+const InvoiceList = lazy(() => import('./pages/InvoiceList.tsx'));
+const CreateInvoice = lazy(() => import('./pages/CreateInvoice.tsx'));
+const Clients = lazy(() => import('./pages/Clients.tsx'));
 const Demo = lazy(() => import('./pages/Demo'));
 // Keep existing ones for now or migrate
 const Settings = lazy(() => import('./pages/Settings'));

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 
 /* Enable class-based dark mode for Tailwind v4 (toggling .dark on <html>) */
 @variant dark (&:where(.dark, .dark *));
@@ -24,7 +25,8 @@
 
 @layer base {
   body {
-    @apply bg-cream text-stone-700 antialiased transition-colors duration-300 selection:bg-stone-300 selection:text-stone-900;
+    @apply bg-cream text-stone-700 antialiased transition-colors duration-300 selection:bg-emerald-100 selection:text-emerald-900;
+    font-family: 'Outfit', sans-serif;
     min-height: 100vh;
   }
 
@@ -43,15 +45,23 @@
   }
 
   .glass-card:hover {
-    @apply border-stone-300 dark:border-stone-600;
+    @apply border-emerald-500/30 dark:border-emerald-500/30 shadow-xl -translate-y-1 cursor-pointer;
   }
 
   .btn-primary {
-    @apply bg-stone-700 hover:bg-stone-600 text-white px-8 py-3.5 rounded-xl font-semibold tracking-tight transition-all duration-200 active:scale-95 flex items-center gap-2.5 border-none cursor-pointer;
+    @apply bg-stone-900 hover:bg-stone-800 text-white px-8 py-3.5 rounded-xl font-bold tracking-tight transition-all duration-300 active:scale-95 flex items-center gap-2.5 border-none cursor-pointer shadow-lg shadow-stone-900/10 hover:shadow-emerald-500/5;
   }
 
   .nav-link {
-    @apply text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-100 font-semibold transition-all px-4 py-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800;
+    @apply text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 font-bold transition-all px-4 py-2 rounded-xl hover:bg-white dark:hover:bg-stone-800 cursor-pointer;
+  }
+
+  input, select, textarea {
+    @apply cursor-text;
+  }
+
+  button, a, [role="button"] {
+    @apply cursor-pointer;
   }
 
   .status-up {

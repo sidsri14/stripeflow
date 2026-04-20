@@ -157,7 +157,7 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 // Writes a timestamp to Redis every 60 s with a 150 s TTL.
 // The health endpoint reads this key — if absent/stale, the worker is down.
 
-const HEARTBEAT_KEY = 'payrecover:worker:heartbeat';
+const HEARTBEAT_KEY = 'stripepay:worker:heartbeat';
 const HEARTBEAT_INTERVAL_MS = 60_000;
 
 const writeHeartbeat = () =>

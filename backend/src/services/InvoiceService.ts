@@ -2,7 +2,7 @@ import { prisma } from '../utils/prisma.js';
 import { PdfService } from './PdfService.js';
 import { sendInvoiceEmail } from '../lib/resend.js';
 import { StripeBillingService } from './StripeBillingService.js';
-import { enqueueInvoiceReminder } from '../jobs/invoice.queue.js';
+import { enqueueInvoiceReminder } from '../jobs/invoice.queue';
 
 export class InvoiceService {
   /**
