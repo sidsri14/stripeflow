@@ -10,8 +10,10 @@ export class BillingService {
   /**
    * Creates a checkout session or subscription for a plan using the specified gateway.
    */
-  static async createSubscription(userId: string, plan: 'starter' | 'pro', gateway: 'razorpay' | 'stripe' = 'razorpay') {
-    if (gateway === 'stripe') {
+  static async createSubscription(userId: string, plan: 'starter' | 'pro', gateway?: 'razorpay' | 'stripe') {
+    const selectedGateway = gateway || (process.env.BILLING_PROVIDER as any) || 'stripe';
+
+    if (selectedGateway === 'stripe') {
       return StripeBillingService.createCheckoutSession(userId, plan);
     }
 
