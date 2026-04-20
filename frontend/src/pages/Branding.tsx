@@ -331,7 +331,7 @@ const Branding: FC<Props> = ({ user, onUpdateUser }) => {
               <div className="space-y-3">
                  <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 rounded-xl">
                    <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 leading-normal">
-                     Step 1: Go to your payment provider's dashboard (Razorpay or Stripe).<br/>
+                     Step 1: Go to your Razorpay Dashboard.<br/>
                      Step 2: Add a new Webhook with the URL above.<br/>
                      Step 3: Select the "payment.failed" event.<br/>
                      Step 4: Save and everything will be captured automatically.

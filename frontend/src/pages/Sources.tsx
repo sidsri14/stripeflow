@@ -24,12 +24,11 @@ interface PaymentSource {
 
 const PROVIDERS = [
   { id: 'razorpay', name: 'Razorpay', icon: Zap, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
-  { id: 'stripe', name: 'Stripe', icon: Zap, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
 ];
 
 const ConnectForm: FC<{ onClose: () => void }> = ({ onClose }) => {
   const queryClient = useQueryClient();
-  const [provider, setProvider] = useState<'razorpay' | 'stripe'>('razorpay');
+  const [provider, setProvider] = useState<'razorpay'>('razorpay');
   const [form, setForm] = useState({ 
     name: '', 
     keyId: '', 
@@ -249,7 +248,7 @@ const Sources: FC = () => {
             Payment Sources
           </h1>
           <p className="text-stone-400 mt-2 font-medium">
-            Connect Razorpay or Stripe to recover global failed payments automatically.
+            Connect your Razorpay account to recover failed payments automatically.
           </p>
         </div>
         <button
@@ -281,7 +280,7 @@ const Sources: FC = () => {
           <div className="space-y-1">
             <h3 className="text-xl font-bold text-stone-800 dark:text-stone-200">No sources active</h3>
             <p className="text-stone-400 text-sm max-w-sm mx-auto font-medium">
-              You haven't connected any payment gateways yet. Click the button above to get started with Stripe or Razorpay.
+              You haven't connected any payment gateways yet. Click the button above to get started with Razorpay.
             </p>
           </div>
         </div>

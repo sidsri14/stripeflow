@@ -7,10 +7,9 @@ const PaymentStatus: React.FC = () => {
 
   const status = params.get('razorpay_payment_link_status'); // "paid" | "cancelled" | null
   const paymentId = params.get('razorpay_payment_id');
-  const sessionId = params.get('session_id'); // Stripe success indicator
 
-  const isSuccess = (status === 'paid' && Boolean(paymentId)) || Boolean(sessionId);
-  const displayId = paymentId || sessionId;
+  const isSuccess = status === 'paid' && Boolean(paymentId);
+  const displayId = paymentId;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-cream dark:bg-stone-900 p-6 transition-colors">

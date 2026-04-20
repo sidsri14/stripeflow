@@ -4,6 +4,50 @@ import { ShieldCheck, Zap, ArrowRight, CheckCircle2, TrendingUp, RotateCcw, Indi
 import { motion } from 'framer-motion';
 import { trackEvent } from '../utils/analytics';
 
+const RevenueCalculator = () => {
+  const [revenue, setRevenue] = useState(500000);
+  const [failureRate, setFailureRate] = useState(12);
+
+  const annualLoss = revenue * (failureRate / 100) * 12;
+  const projectedRecovery = annualLoss * 0.22; // Conservative 22% recovery
+
+  return (
+    <div className="space-y-10 max-w-2xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <label className="text-sm font-black uppercase tracking-widest text-stone-400 block">Monthly Revenue (₹)</label>
+          <input 
+            type="range" min="100000" max="5000000" step="100000"
+            value={revenue} onChange={(e) => setRevenue(Number(e.target.value))}
+            className="w-full h-2 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+          />
+          <div className="text-2xl font-black">₹{revenue.toLocaleString('en-IN')}</div>
+        </div>
+        <div className="space-y-4">
+          <label className="text-sm font-black uppercase tracking-widest text-stone-400 block">Failure Rate (%)</label>
+          <input 
+            type="range" min="5" max="30" step="1"
+            value={failureRate} onChange={(e) => setFailureRate(Number(e.target.value))}
+            className="w-full h-2 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+          />
+          <div className="text-2xl font-black">{failureRate}%</div>
+        </div>
+      </div>
+      
+      <div className="pt-10 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="text-center md:text-left">
+          <div className="text-stone-400 text-sm font-bold uppercase mb-1">Your Yearly Loss</div>
+          <div className="text-4xl font-black text-red-400">₹{annualLoss.toLocaleString('en-IN')}</div>
+        </div>
+        <div className="text-center md:text-right">
+          <div className="text-emerald-400 text-sm font-bold uppercase mb-1">Projected Recovery</div>
+          <div className="text-4xl font-black text-emerald-500">₹{projectedRecovery.toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ThemeToggle = () => {
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
@@ -78,14 +122,14 @@ const LandingPage = () => {
             transition={{ duration: 0.8 }}
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 text-xs font-black uppercase tracking-widest mb-8">
-              <Zap className="w-3.5 h-3.5 fill-emerald-500" /> Professional Recovery
+              <Zap className="w-3.5 h-3.5 fill-emerald-500" /> #1 Razorpay Recovery Engine for India
             </div>
             <h1 className="text-6xl md:text-8xl font-black text-stone-900 dark:text-white mb-8 tracking-tighter leading-[0.95]">
-              Stop losing money on <br className="hidden md:block" />
-              <span className="text-emerald-500">failed payments.</span>
+              Recover your <br className="hidden md:block" />
+              <span className="text-emerald-500">lost revenue on WhatsApp.</span>
             </h1>
             <p className="max-w-2xl mx-auto text-xl font-medium text-stone-500 dark:text-stone-400 mb-12 leading-relaxed">
-              Get your revenue back automatically. PayRecover monitors your Razorpay account and recovers failed customer transactions while you sleep.
+              Indian founders lose 10-15% of ARR to Razorpay payment failures. PayRecover automatically wins them back via smart WhatsApp, SMS, and Email flows.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link 
@@ -95,9 +139,12 @@ const LandingPage = () => {
               >
                 Connect Razorpay <ArrowRight className="w-5 h-5" />
               </Link>
-              <div className="text-sm font-bold text-stone-400 dark:text-stone-500 bg-white/50 dark:bg-stone-800/50 px-6 py-5 rounded-2xl border border-warm-border dark:border-stone-800 backdrop-blur-sm">
-                No credit card required
-              </div>
+              <Link
+                to="/register"
+                className="w-full sm:w-auto text-sm font-bold text-stone-600 dark:text-stone-400 bg-white/50 dark:bg-stone-800/50 px-8 py-5 rounded-2xl border border-warm-border dark:border-stone-800 backdrop-blur-sm hover:bg-white dark:hover:bg-stone-800 transition-all"
+              >
+                See Live Simulation Demo
+              </Link>
             </div>
           </motion.div>
         </div>
@@ -108,9 +155,9 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
              {[
-               { label: 'Total Recovered', value: '₹4,87,320+', icon: <TrendingUp className="w-5 h-5" />, color: 'emerald' },
-               { label: 'Active Retries', value: '1,240+', icon: <RotateCcw className="w-5 h-5" />, color: 'amber' },
-               { label: 'Global Availability', value: '99.9%', icon: <Globe className="w-5 h-5" />, color: 'blue' },
+               { label: 'Recovered for Founders', value: '₹12.4L+', icon: <TrendingUp className="w-5 h-5" />, color: 'emerald' },
+               { label: 'Active Reminders', value: '3,840+', icon: <RotateCcw className="w-5 h-5" />, color: 'amber' },
+               { label: 'Platform Reliability', value: '99.99%', icon: <Globe className="w-5 h-5" />, color: 'blue' },
              ].map((m, i) => (
                <div key={i} className="p-8 rounded-3xl border border-warm-border dark:border-stone-800 bg-white dark:bg-stone-800/40 backdrop-blur-xl shadow-soft">
                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 bg-${m.color}-50 dark:bg-${m.color}-900/20 text-${m.color}-600 dark:text-${m.color}-400`}>
@@ -124,21 +171,32 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* ── Revenue Loss Calculator */}
+      <section className="py-32 px-6">
+        <div className="max-w-4xl mx-auto p-12 rounded-[60px] bg-stone-900 text-white relative overflow-hidden shadow-2xl">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 blur-[100px] rounded-full" />
+          <div className="relative z-10 text-center">
+            <h2 className="text-3xl md:text-5xl font-black mb-12 tracking-tight">How much are you losing?</h2>
+            <RevenueCalculator />
+          </div>
+        </div>
+      </section>
+
       {/* ── How It Works */}
       <section className="py-32 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-5xl font-black text-stone-900 dark:text-white mb-6">Recover in 60 seconds.</h2>
-            <p className="text-stone-500 dark:text-stone-400 font-medium">Three simple steps to never miss a payment again.</p>
+            <h2 className="text-4xl md:text-5xl font-black text-stone-900 dark:text-white mb-6">Built for the Indian internet.</h2>
+            <p className="text-stone-500 dark:text-stone-400 font-medium max-w-xl mx-auto text-lg leading-relaxed">Most recovery tools rely on email. We know Indians live on WhatsApp. Our 3-stage flow wins back customers where they actually are.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-16 relative">
              {/* Connector Line */}
              <div className="hidden md:block absolute top-[60px] left-32 right-32 h-[2px] bg-stone-100 dark:bg-stone-800 -z-10" />
              
              {[
-               { title: 'Connect Source', desc: 'Securely link your Razorpay account with one-click encryption.', icon: <Zap /> },
-               { title: 'Automated Monitoring', desc: 'Our worker instantly detects failed payments and enqueues recovery.', icon: <ShieldCheck /> },
-               { title: 'Recover Revenue', desc: 'Customers get smart email reminders with 7-day payment links.', icon: <IndianRupee /> },
+               { title: 'Connect Razorpay', desc: 'Securely link your account via one-click encryption. No developer needed.', icon: <Zap /> },
+               { title: 'Multi-Channel Dunning', desc: 'Intelligent flows across WhatsApp, SMS, and Email based on local habits.', icon: <ShieldCheck /> },
+               { title: 'Recover ₹₹₹', desc: 'Customers get 1-click payment links compatible with UPI and local cards.', icon: <IndianRupee /> },
              ].map((step, i) => (
                <div key={i} className="text-center group">
                  <div className="w-24 h-24 rounded-[40px] bg-white dark:bg-stone-800 border border-warm-border dark:border-stone-700 mx-auto flex items-center justify-center mb-8 shadow-xl group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500">
@@ -147,7 +205,7 @@ const LandingPage = () => {
                     </div>
                  </div>
                  <h3 className="text-xl font-black text-stone-900 dark:text-white mb-4">{step.title}</h3>
-                 <p className="text-stone-500 dark:text-stone-500 text-sm font-medium leading-relaxed">{step.desc}</p>
+                 <p className="text-stone-500 dark:text-stone-500 text-sm font-medium leading-relaxed px-4">{step.desc}</p>
                </div>
              ))}
           </div>
