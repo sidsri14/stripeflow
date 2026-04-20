@@ -45,35 +45,19 @@ const cspConnectSrc = ["'self'", ...parsedAllowed, 'http://localhost:5173'].filt
 // Enable trust proxy for correct IP detection in cloud environments
 app.set('trust proxy', 1);
 
-// 1. CORS Middleware (Standard for Cross-Domain Vercel <-> Railway)
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowed = (process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean);
-    const whitelist = [...allowed, 'http://localhost:5173'];
-    
-    if (!origin || whitelist.includes(origin) || origin.endsWith('.vercel.app')) {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS blocked for origin: ${origin}`));
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200
-}));
-
-// 2. Security Middleware (Standard Hardening)
+// ── Security & CSP
 app.use(helmet({
   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: cspConnectSrc,
-      fontSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.stripe.com"],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://resend.com", ...parsedAllowed, 'http://localhost:5173'],
+      frameSrc: ["'self'", "https://checkout.stripe.com"],
+      imgSrc: ["'self'", "data:", "https://*.stripe.com", "https://resend.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
-      frameSrc: ["'none'"],
     },
   },
 }));
@@ -81,27 +65,40 @@ app.use(helmet({
 app.use(morgan('dev'));
 app.use(cookieParser());
 
-// Webhook routes
+// ── CORS Middleware
+app.use(cors({
+  origin: (origin, callback) => {
+    const whitelist = [...parsedAllowed, 'http://localhost:5173'];
+    if (!origin || whitelist.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'x-api-key'],
+  optionsSuccessStatus: 200
+}));
+
+// ── Webhook Routes (Raw Body Required)
 app.post('/api/webhooks/billing/razorpay', express.raw({ type: 'application/json' }), billingWebhook);
 app.post('/api/webhooks/billing/stripe', express.raw({ type: 'application/json' }), stripeBillingWebhook);
 app.post('/api/webhooks/stripe/invoice', express.raw({ type: 'application/json' }), handleStripeInvoiceWebhook);
 
-// General purpose body parsers
+// ── Body Parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Global Rate Limiter
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 500,
-  message: { error: 'Global rate limit exceeded' },
+// ── Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 1000, 
+  message: { error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip || 'unknown',
-  validate: false, // Disable internal validation checks to prevent startup warnings
 });
-
-app.use('/api/', globalLimiter);
+app.use('/api/', limiter);
 
 // CSRF Token — issues a non-HttpOnly cookie that the frontend echoes back
 // as x-csrf-token on every state-changing request (double-submit pattern).
