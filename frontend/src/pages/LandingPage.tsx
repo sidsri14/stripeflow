@@ -29,6 +29,18 @@ const ThemeToggle = () => {
 };
 
 const LandingPage = () => {
+  useEffect(() => {
+    document.title = 'PayRecover | Automated Failed Payment Recovery';
+    // Ensure meta description is set for crawlers/subagents
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      (metaDesc as HTMLMetaElement).name = 'description';
+      document.head.appendChild(metaDesc);
+    }
+    (metaDesc as HTMLMetaElement).content = 'Recover lost revenue automatically. PayRecover monitors failed payments and uses smart multi-channel flows to win back customers.';
+  }, []);
+
   return (
     <div className="min-h-screen bg-cream dark:bg-stone-900 transition-colors selection:bg-emerald-200 dark:selection:bg-emerald-900/40">
       

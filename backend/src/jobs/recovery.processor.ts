@@ -69,6 +69,10 @@ export async function processRecoveryJob(job: Job<RecoveryJobData>): Promise<voi
           const adapter = ProviderFactory.getProvider(source.provider);
           generatedLink = await adapter.generateRecoveryLink(payment, source);
         }
+      } else if (payment.paymentId.startsWith('pay_demo_')) {
+        // Support for "Simulate for test" onboarding feature
+        generatedLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/recovery/${payment.id}`;
+        logger.info({ failedPaymentId }, 'Generated mock recovery link for simulation');
       }
 
       // Fallback removed — we now rely strictly on source adapters. 

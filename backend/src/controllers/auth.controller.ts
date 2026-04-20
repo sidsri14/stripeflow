@@ -150,9 +150,14 @@ export const updateBranding = async (req: AuthRequest, res: Response, next: Next
       }
     }
 
+    const dataToUpdate: any = { brandEmailSubject, brandEmailTone };
+    if (brandSettings !== undefined) {
+      dataToUpdate.brandSettings = JSON.stringify(brandSettings);
+    }
+
     const user = await prisma.user.update({
       where: { id: req.userId },
-      data: { brandSettings, brandEmailSubject, brandEmailTone },
+      data: dataToUpdate,
       select: { id: true, email: true, name: true, plan: true, createdAt: true, brandSettings: true, brandEmailSubject: true, brandEmailTone: true, password: true, googleId: true }
     });
     const { password, googleId, ...rest } = user;

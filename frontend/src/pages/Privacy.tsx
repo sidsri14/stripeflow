@@ -1,4 +1,4 @@
-import { Lock, ShieldCheck, EyeOff, Database } from 'lucide-react';
+import { Lock, ShieldCheck, Database, Scale } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Privacy = () => {
