@@ -12,6 +12,7 @@ const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard')); // Now showing stats
 const InvoiceList = lazy(() => import('./pages/InvoiceList.tsx'));
 const CreateInvoice = lazy(() => import('./pages/CreateInvoice.tsx'));
+const InvoiceDetail = lazy(() => import('./pages/InvoiceDetail.tsx'));
 const Clients = lazy(() => import('./pages/Clients.tsx'));
 const Demo = lazy(() => import('./pages/Demo'));
 // Keep existing ones for now or migrate
@@ -310,6 +311,7 @@ function App() {
                     <Route path="/dashboard" element={<Dashboard user={user} />} />
                     <Route path="/invoices" element={<InvoiceList />} />
                     <Route path="/invoices/new" element={<CreateInvoice />} />
+                    <Route path="/invoices/:id" element={<InvoiceDetail />} />
                     <Route path="/clients" element={<Clients />} />
                     <Route path="/settings" element={<Settings user={user} onUpdateUser={(u) => setUser(u)} />} />
                     <Route path="/security" element={<Security />} />

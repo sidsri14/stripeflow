@@ -45,7 +45,7 @@ export class InvoiceService {
     const pdfBuffer = await generateInvoicePDF({ ...invoice, user, client: client ?? fallbackClient, items: [] } as any);
     
     // In a real app, you'd upload this to S3:
-    const pdfUrl = `${process.env.BACKEND_URL}/api/invoices/${invoice.id}/pdf`; 
+    const pdfUrl = `${process.env.BACKEND_URL ?? 'http://localhost:3000'}/api/invoices/${invoice.id}/pdf`;
 
     // 4. Create Stripe Payment Link/Session
     const stripeSession = await StripeBillingService.createInvoiceSession(invoice, user);

@@ -18,7 +18,7 @@ describe('sendEmail', () => {
     process.env.RESEND_API_KEY = 'test-key';
     await sendEmail({ to: 'a@b.com', subject: 'Hello', html: '<p>hi</p>' });
     expect(mockSend).toHaveBeenCalledTimes(1);
-    const [call] = mockSend.mock.calls;
+    const call = mockSend.mock.calls[0] as any[];
     expect(call[0].to).toBe('a@b.com');
     expect(call[0].subject).toBe('Hello');
   });
@@ -37,7 +37,7 @@ describe('sendEmail', () => {
   it('throws when Resend returns an error', async () => {
     process.env.RESEND_API_KEY = 'test-key';
     mockSend.mockImplementationOnce(() =>
-      Promise.resolve({ data: null, error: { message: 'Invalid address' } })
+      Promise.resolve({ data: null, error: { message: 'Invalid address' } }) as any
     );
     await expect(sendEmail({ to: 'bad', subject: 'x', html: 'x' })).rejects.toThrow('Invalid address');
   });

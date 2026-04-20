@@ -31,9 +31,9 @@ const InvoiceList: FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
-      case 'overdue': return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
-      case 'cancelled': return 'bg-stone-500/10 text-stone-500 border-stone-500/20';
+      case 'PAID': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+      case 'OVERDUE': return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
+      case 'CANCELLED': return 'bg-stone-500/10 text-stone-500 border-stone-500/20';
       default: return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
     }
   };
@@ -93,6 +93,7 @@ const InvoiceList: FC = () => {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       className="hover:bg-stone-50/50 dark:hover:bg-stone-800/30 transition-all duration-300 group cursor-pointer"
+                      onClick={() => navigate(`/invoices/${invoice.id}`)}
                     >
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
@@ -125,21 +126,21 @@ const InvoiceList: FC = () => {
                       <td className="px-6 py-5 text-right">
                         <div className="flex items-center justify-end gap-1 sm:gap-2">
                           <button
-                            onClick={() => window.open(invoice.pdfUrl, '_blank')}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/invoices/${invoice.id}`); }}
                             className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-600 transition-all"
-                            title="View PDF"
+                            title="View Invoice"
                           >
                             <FileText className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => window.open(`${window.location.origin}/demo?invoice=${invoice.id}`, '_blank')}
+                            onClick={(e) => { e.stopPropagation(); window.open(`/api/invoices/${invoice.id}/pdf`, '_blank'); }}
                             className="p-2 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 hover:text-emerald-500 transition-all"
-                            title="Checkout Link"
+                            title="Download PDF"
                           >
                             <ExternalLink className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(invoice.id)}
+                            onClick={(e) => { e.stopPropagation(); handleDelete(invoice.id); }}
                             className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/10 text-stone-400 hover:text-rose-500 transition-all"
                             title="Delete"
                           >

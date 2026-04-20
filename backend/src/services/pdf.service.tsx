@@ -103,6 +103,6 @@ function InvoiceDocument({ invoice }: { invoice: InvoiceForPDF }) {
 }
 
 export async function generateInvoicePDF(invoice: InvoiceForPDF): Promise<Buffer> {
-  const element = React.createElement(InvoiceDocument, { invoice });
+  const element = React.createElement(InvoiceDocument, { invoice }) as any;
   return await renderToBuffer(element);
 }

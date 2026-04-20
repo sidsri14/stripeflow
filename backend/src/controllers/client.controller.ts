@@ -32,10 +32,11 @@ export class ClientController {
 
   static async update(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const client = await prisma.client.update({
-        where: { id: req.params.id, userId: req.userId! },
-        data: req.body
-      });
+      const id = String(req.params.id);
+      const userId = String(req.userId);
+      const existing = await prisma.client.findFirst({ where: { id, userId } });
+      if (!existing) return errorResponse(res, 'Client not found', 404);
+      const client = await prisma.client.update({ where: { id }, data: req.body });
       successResponse(res, client);
     } catch (err) {
       next(err);
@@ -44,9 +45,10 @@ export class ClientController {
 
   static async delete(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      await prisma.client.delete({
-        where: { id: req.params.id, userId: req.userId! }
-      });
+      const id = String(req.params.id);
+      const userId = String(req.userId);
+      const count = await prisma.client.deleteMany({ where: { id, userId } });
+      if (count.count === 0) return errorResponse(res, 'Client not found', 404);
       successResponse(res, { success: true });
     } catch (err) {
       next(err);

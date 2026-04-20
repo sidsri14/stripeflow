@@ -73,8 +73,10 @@ export class InvoiceController {
 
   static async get(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const invoice = await prisma.invoice.findUnique({
-        where: { id: req.params.id, userId: req.userId! },
+      const id = String(req.params.id);
+      const userId = String(req.userId);
+      const invoice = await prisma.invoice.findFirst({
+        where: { id, userId },
         include: { client: true }
       });
       if (!invoice) return errorResponse(res, 'Invoice not found', 404);
@@ -86,9 +88,10 @@ export class InvoiceController {
 
   static async delete(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      await prisma.invoice.delete({
-        where: { id: req.params.id, userId: req.userId! }
-      });
+      const id = String(req.params.id);
+      const userId = String(req.userId);
+      const count = await prisma.invoice.deleteMany({ where: { id, userId } });
+      if (count.count === 0) return errorResponse(res, 'Invoice not found', 404);
       successResponse(res, { success: true });
     } catch (err) {
       next(err);
@@ -97,8 +100,10 @@ export class InvoiceController {
 
   static async getPdf(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const invoice = await prisma.invoice.findUnique({
-        where: { id: req.params.id, userId: req.userId! },
+      const id = String(req.params.id);
+      const userId = String(req.userId);
+      const invoice = await prisma.invoice.findFirst({
+        where: { id, userId },
         include: { client: true, user: true, items: true },
       });
       if (!invoice) return errorResponse(res, 'Invoice not found', 404);
