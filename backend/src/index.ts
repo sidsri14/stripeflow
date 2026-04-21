@@ -11,7 +11,6 @@ const port = process.env.PORT || 3000;
 
 const REQUIRED_ENV = [
   'JWT_SECRET', 'ENCRYPTION_KEY', 'DATABASE_URL',
-  'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET',
 ] as const;
 
 const OPTIONAL_ENV: Array<{ key: string; impact: string }> = [
@@ -20,12 +19,20 @@ const OPTIONAL_ENV: Array<{ key: string; impact: string }> = [
   { key: 'TWILIO_AUTH_TOKEN',  impact: 'Pro-plan SMS recovery on 3rd attempt will be skipped' },
   { key: 'TWILIO_FROM_NUMBER', impact: 'Pro-plan SMS recovery on 3rd attempt will be skipped' },
   { key: 'SENTRY_DSN',         impact: 'Error monitoring will be disabled' },
+  { key: 'RAZORPAY_KEY_ID',   impact: 'Global Razorpay credentials unavailable — per-source keys still work' },
+  { key: 'RAZORPAY_KEY_SECRET', impact: 'Global Razorpay credentials unavailable — per-source keys still work' },
 ];
 
 function validateEnv(): void {
   const missing = REQUIRED_ENV.filter(k => !process.env[k]);
   if (missing.length > 0) {
     console.error(`[Startup] Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+
+  const jwtSecret = process.env.JWT_SECRET!;
+  if (jwtSecret.length < 32) {
+    console.error('[Startup] JWT_SECRET must be at least 32 characters long');
     process.exit(1);
   }
 

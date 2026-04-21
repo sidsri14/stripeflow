@@ -10,8 +10,8 @@ export class RazorpayProvider extends BaseProvider {
 
   async validateCredentials(credentials: any): Promise<boolean> {
     const { keyId, keySecret } = credentials;
-    // Bypass for E2E testing
-    if (keyId?.includes('placeholder') || keySecret?.includes('placeholder')) {
+    if (process.env.NODE_ENV !== 'production' &&
+        (keyId?.includes('placeholder') || keySecret?.includes('placeholder'))) {
       return true;
     }
 
@@ -29,8 +29,7 @@ export class RazorpayProvider extends BaseProvider {
     const creds = typeof credentials === 'string' ? JSON.parse(credentials) : credentials;
     const { keyId, keySecret } = creds;
 
-    // Audit-friendly mock for environments with placeholder keys
-    if (keyId?.includes('placeholder') || !keyId) {
+    if (!keyId || (process.env.NODE_ENV !== 'production' && keyId?.includes('placeholder'))) {
       return `https://rzp.io/i/mock_recovery_${failedPayment.id}`;
     }
 

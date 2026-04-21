@@ -1,35 +1,41 @@
 import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '../middleware/auth.middleware.js';
+import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
 import { InvoiceService } from '../services/InvoiceService.js';
 import { generateInvoicePDF } from '../services/pdf.service.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
+const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'INR', 'AUD', 'CAD', 'SGD', 'AED', 'MYR', 'JPY'] as const;
+
+const invoiceCreateSchema = z.object({
+  clientId: z.string().optional(),
+  clientEmail: z.string().email('Invalid client email').max(254),
+  description: z.string().min(1, 'Description is required').max(1000),
+  amount: z.coerce.number().int('Amount must be a whole number (cents)').min(1).max(99_999_999),
+  dueDate: z.coerce.date().refine(
+    d => d >= new Date(new Date().setHours(0, 0, 0, 0)),
+    { message: 'Due date cannot be in the past' }
+  ),
+  currency: z.enum(SUPPORTED_CURRENCIES, { message: 'Unsupported currency' }).default('USD'),
+});
+
 export class InvoiceController {
   static async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { clientId, clientEmail, description, amount, dueDate, currency } = req.body;
-
-      if (!clientEmail || !description || !amount || !dueDate) {
-        return errorResponse(res, 'Missing required fields', 400);
+      const parsed = invoiceCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return errorResponse(res, parsed.error.errors[0].message, 400);
       }
 
-      const parsedAmount = parseInt(amount, 10);
-      if (!Number.isInteger(parsedAmount) || parsedAmount <= 0 || parsedAmount > 99_999_999) {
-        return errorResponse(res, 'Amount must be a positive integer (in cents, max $999,999.99)', 400);
-      }
-
-      const parsedDue = new Date(dueDate);
-      if (isNaN(parsedDue.getTime())) {
-        return errorResponse(res, 'Invalid due date', 400);
-      }
+      const { clientId, clientEmail, description, amount, dueDate, currency } = parsed.data;
 
       const result = await InvoiceService.createInvoice(req.userId!, {
         clientId,
         clientEmail,
         description,
-        amount: parsedAmount,
-        dueDate: parsedDue,
+        amount,
+        dueDate,
         currency
       });
 

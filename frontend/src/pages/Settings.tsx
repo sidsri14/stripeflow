@@ -45,22 +45,6 @@ const Settings: FC<Props> = ({ user, onUpdateUser }) => {
     staleTime: 60_000,
   });
 
-  const handleUpdatePlan = async (plan: 'free' | 'pro') => {
-    setLoading(true);
-    try {
-      const { data } = await api.patch('/billing/plan', { plan });
-      if (data.success) {
-        toast.success(`Plan updated to ${plan === 'free' ? 'Free' : 'Pro'}`);
-        onUpdateUser(data.data.user);
-      }
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
-      toast.error(error.response?.data?.error || 'Failed to update plan');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCheckout = async (plan: 'starter' | 'pro', gateway: 'stripe' | 'razorpay' = 'stripe') => {
     setLoading(true);
     try {
@@ -82,16 +66,22 @@ const Settings: FC<Props> = ({ user, onUpdateUser }) => {
     e.preventDefault();
     setProfileLoading(true);
     try {
-      const brandSettings = JSON.parse(user.brandSettings || '{}');
-      brandSettings.companyName = profileForm.companyName;
-      
-      const { data } = await api.patch('/auth/profile', {
-        name: profileForm.name,
-        brandSettings: JSON.stringify(brandSettings)
-      });
-      if (data.success) {
+      const existingBrand = JSON.parse(user.brandSettings || '{}');
+      const updatedBrand = { ...existingBrand, companyName: profileForm.companyName };
+
+      // Fire both updates in parallel: profile (name/email) and branding (companyName)
+      const [profileRes] = await Promise.all([
+        api.patch('/auth/profile', { name: profileForm.name }),
+        api.patch('/auth/branding', { brandSettings: updatedBrand }),
+      ]);
+
+      if (profileRes.data.success) {
         toast.success('Profile updated successfully');
-        onUpdateUser(data.data.user);
+        // Reflect updated branding in the local user object without a full refetch
+        onUpdateUser({
+          ...profileRes.data.data.user,
+          brandSettings: JSON.stringify(updatedBrand),
+        });
       }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
@@ -184,9 +174,12 @@ const Settings: FC<Props> = ({ user, onUpdateUser }) => {
               <li className="flex items-center gap-2 text-sm text-stone-400 line-through opacity-50">Automated email recovery</li>
             </ul>
             {user.plan !== 'free' && (
-                <button onClick={() => handleUpdatePlan('free')} disabled={loading} className="w-full py-2.5 rounded-xl border border-warm-border dark:border-stone-700 text-stone-600 dark:text-stone-400 font-semibold text-sm hover:bg-white dark:hover:bg-stone-800 transition-all opacity-60 hover:opacity-100">
-                  Downgrade
-                </button>
+              <a
+                href="mailto:support@stripeflow.app?subject=Cancel%20subscription"
+                className="block w-full py-2.5 rounded-xl border border-warm-border dark:border-stone-700 text-stone-500 dark:text-stone-400 font-semibold text-sm text-center hover:bg-white dark:hover:bg-stone-800 transition-all opacity-60 hover:opacity-100"
+              >
+                Contact support to cancel
+              </a>
             )}
           </div>
 
