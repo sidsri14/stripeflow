@@ -54,12 +54,29 @@ export const getSubscriptionStatus = async (req: AuthRequest, res: Response, nex
 };
 
 /**
- * Directly updates the user's plan.
- * For production this should go through the Razorpay subscription webhook flow,
- * but this endpoint allows manual plan changes for dev/support scenarios.
+ * Internal-only plan override for dev/support scenarios.
+ * Requires a matching INTERNAL_ADMIN_SECRET header — never callable by end users.
+ * In production, plan changes go through the Stripe/Razorpay webhook flow.
  */
 export const updatePlan = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const adminSecret = process.env.INTERNAL_ADMIN_SECRET;
+    const providedSecret = req.headers['x-admin-secret'];
+
+    if (!adminSecret || adminSecret.length < 32) {
+      logger.warn('[updatePlan] INTERNAL_ADMIN_SECRET not configured or too short — endpoint disabled');
+      return errorResponse(res, 'Not available', 404);
+    }
+
+    if (
+      !providedSecret ||
+      typeof providedSecret !== 'string' ||
+      providedSecret.length !== adminSecret.length ||
+      !crypto.timingSafeEqual(Buffer.from(providedSecret), Buffer.from(adminSecret))
+    ) {
+      return errorResponse(res, 'Forbidden', 403);
+    }
+
     const { plan } = req.body;
     const { prisma } = await import('../utils/prisma.js');
     const user = await prisma.user.update({

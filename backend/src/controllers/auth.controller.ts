@@ -148,6 +148,9 @@ export const updateBranding = async (req: AuthRequest, res: Response, next: Next
       if (signature !== undefined && (typeof signature !== 'string' || (signature as string).length > 500)) {
         return errorResponse(res, 'signature must be a string under 500 characters', 400);
       }
+      if (companyName !== undefined && (typeof companyName !== 'string' || (companyName as string).length > 200)) {
+        return errorResponse(res, 'companyName must be a string under 200 characters', 400);
+      }
     }
 
     const dataToUpdate: any = { brandEmailSubject, brandEmailTone };

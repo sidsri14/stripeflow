@@ -48,8 +48,10 @@ export class InvoiceController {
       const safeSortKey = ALLOWED_SORT_KEYS.includes(String(sortKey) as any) ? String(sortKey) : 'createdAt';
       const safeSortDir = ALLOWED_SORT_DIRS.includes(String(sortDir) as any) ? (String(sortDir) as 'asc' | 'desc') : 'desc';
 
-      const skip = (Number(page) - 1) * Number(limit);
-      const take = Math.min(Number(limit), 100); // cap at 100 per page
+      const safePage = Math.max(1, Number(page) || 1);
+      const safeTake = Math.min(Math.max(1, Number(limit) || 10), 100);
+      const skip = (safePage - 1) * safeTake;
+      const take = safeTake;
 
       const where: any = {
         userId: req.userId!,
@@ -78,8 +80,8 @@ export class InvoiceController {
       successResponse(res, {
         invoices,
         total,
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: take,
         pages: Math.ceil(total / take)
       });
     } catch (err) {

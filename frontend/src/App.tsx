@@ -266,7 +266,7 @@ function App() {
     } finally {
       setUser(null);
       // Immediately rotate CSRF token after logout to prevent stale submissions on next login
-      api.get('/api/csrf-token').catch(() => {});
+      api.get('/csrf-token').catch(() => {});
     }
   };
 

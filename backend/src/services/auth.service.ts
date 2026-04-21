@@ -97,20 +97,41 @@ export const completePassReset = async (token: string, pass: string) => {
 
 export const updateUserProfile = async (userId: string, data: { name?: string; email?: string }) => {
   const { name, email } = data;
-  
+
   if (email) {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing && existing.id !== userId) throw new Error('Email already in use');
   }
 
+  const current = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  const emailChanged = email && email !== current?.email;
+
+  // If the email address changes, the new address must be re-verified.
+  // Generate a fresh token so the old verification link can no longer be used.
+  const emailUpdateFields = emailChanged
+    ? {
+        email,
+        emailVerified: false,
+        emailVerifyToken: crypto.randomBytes(32).toString('hex'),
+        emailVerifyExpiry: new Date(Date.now() + VERIFY_EXPIRY_HOURS * 3600000),
+      }
+    : (email ? { email } : {});
+
   const user = await prisma.user.update({
     where: { id: userId },
-    data: { name, email },
-    select: { id: true, email: true, name: true, plan: true, createdAt: true }
+    data: { name, ...emailUpdateFields },
+    select: { id: true, email: true, name: true, plan: true, createdAt: true, emailVerifyToken: true }
   });
 
+  if (emailChanged && user.emailVerifyToken) {
+    sendEmailVerificationEmail(email!, {
+      verifyLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${user.emailVerifyToken}`,
+    }).catch(e => logger.error(e));
+  }
+
   await logAuditAction(userId, 'USER_PROFILE_UPDATED', 'User', userId, { name, email });
-  return user;
+  const { emailVerifyToken: _tok, ...rest } = user;
+  return rest;
 };
 
 export const changeUserPassword = async (userId: string, oldPass: string, newPass: string) => {

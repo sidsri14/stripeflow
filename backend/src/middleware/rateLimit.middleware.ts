@@ -11,8 +11,7 @@ export const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // req.ip is trust-proxy-aware (set by app.set('trust proxy', 1)) — safe against header spoofing
-  keyGenerator: (req: Request) => req.ip ?? req.socket.remoteAddress ?? 'unknown',
+  // Uses default keyGenerator which is trust-proxy-aware and avoids IPv6 validation warnings
 });
 
 export const apiLimiter = rateLimit({
@@ -24,7 +23,7 @@ export const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req: Request) => req.ip ?? req.socket.remoteAddress ?? 'unknown',
+  // Uses default keyGenerator
 });
 
 // ── Plan-aware rate limiters (keyed by userId, not IP) ────────────────────────
@@ -53,7 +52,8 @@ const planLimiters = Object.fromEntries(
       standardHeaders: true,
       legacyHeaders: false,
       keyGenerator: (req: Request) => {
-        return (req as AuthRequest).userId ?? (req.headers['x-forwarded-for'] as string) ?? req.socket.remoteAddress ?? 'unknown';
+        // userId is guaranteed after requireAuth middleware
+        return (req as AuthRequest).userId || 'anonymous';
       },
     }),
   ])

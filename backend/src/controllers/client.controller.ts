@@ -1,14 +1,23 @@
 import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '../middleware/auth.middleware.js';
+import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
+
+const clientCreateSchema = z.object({
+  name: z.string().min(1).max(200),
+  email: z.string().email('Invalid email address').max(254),
+  phone: z.string().max(30).optional(),
+  company: z.string().max(200).optional(),
+});
 
 export class ClientController {
   static async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { name, email, phone, company } = req.body;
-      if (!name || !email) return errorResponse(res, 'Name and Email are required', 400);
+      const parsed = clientCreateSchema.safeParse(req.body);
+      if (!parsed.success) return errorResponse(res, parsed.error.issues[0]?.message ?? 'Invalid request', 400);
 
+      const { name, email, phone, company } = parsed.data;
       const client = await prisma.client.create({
         data: { userId: req.userId!, name, email, phone, company }
       });

@@ -148,11 +148,11 @@ export class StripeBillingService {
         // Handle one-off invoice payments
         const invoiceId = data.metadata?.invoiceId;
         const type = data.metadata?.type;
-        
+
         if (type === 'invoice' && invoiceId) {
-          await prisma.invoice.update({
-            where: { id: invoiceId },
-            data: { status: 'PAID' }
+          await prisma.invoice.updateMany({
+            where: { id: invoiceId, status: { not: 'PAID' } },
+            data: { status: 'PAID', paidAt: new Date() },
           });
         }
         break;

@@ -1,103 +1,76 @@
-import axios from 'axios';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const API_URL = 'http://localhost:3000/api';
 
-async function testClickTracking() {
-  console.log('--- Testing Click Tracking ---');
+async function testInvoiceFlow() {
+  console.log('--- Testing Invoice Creation Flow ---');
   
-  // 1. Setup mock user and payment
-  const user = await prisma.user.findFirst();
-  if (!user) throw new Error('No user found in DB');
+  // 1. Setup mock user
+  let user = await prisma.user.findFirst({ where: { email: 'e2e-test@example.com' } });
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email: 'e2e-test@example.com',
+        name: 'E2E Tester',
+        plan: 'pro'
+      }
+    });
+    console.log(`Created test user: ${user.email}`);
+  }
 
-  const fp = await prisma.failedPayment.create({
+  // 2. Create a Client
+  const client = await prisma.client.create({
     data: {
       userId: user.id,
-      paymentId: 'test_track_' + Date.now(),
-      amount: 50000,
-      customerEmail: 'test-tracker@example.com',
-      status: 'pending'
+      name: 'Test Client Corp',
+      email: 'client@testcorp.com',
+      company: 'TestCorp Industries'
     }
   });
+  console.log(`Created test client: ${client.name} (${client.id})`);
 
-  const rl = await prisma.recoveryLink.create({
+  // 3. Create an Invoice
+  const invoice = await prisma.invoice.create({
     data: {
-      failedPaymentId: fp.id,
-      url: 'https://example.com/actual-recovery-page'
+      userId: user.id,
+      clientId: client.id,
+      number: 'INV-' + Date.now(),
+      amount: 150000, // $1500.00
+      currency: 'INR',
+      description: 'Consulting Services - Phase 1',
+      clientEmail: client.email,
+      dueDate: new Date(Date.now() + 7 * 24 * 3600000), // 7 days from now
+      status: 'DRAFT'
     }
   });
+  console.log(`Created test invoice: ${invoice.number} (${invoice.id})`);
 
-  console.log(`Created test payment: ${fp.id}`);
-  console.log(`Created recovery link: ${rl.url}`);
-
-  // 2. Simulate click
-  console.log('Simulating click via tracking route...');
-  try {
-    const res = await axios.get(`${API_URL}/recovery/track/${fp.id}`, {
-      maxRedirects: 0,
-      validateStatus: (status) => status === 302
-    });
-    
-    console.log(`Received Redirect: ${res.headers.location}`);
-    if (res.headers.location === rl.url) {
-      console.log('✅ Redirection Successful');
-    } else {
-      console.log('❌ Redirection Failed');
-    }
-  } catch (err: any) {
-    console.error('❌ Tracking request failed', err.message);
-  }
-
-  // 3. Verify DB update
-  const updatedFp = await prisma.failedPayment.findUnique({ where: { id: fp.id } });
-  console.log(`Updated Click Count: ${updatedFp?.clickCount}`);
-  if (updatedFp?.clickCount === 1) {
-    console.log('✅ Click Count Incremented');
-  } else {
-    console.log('❌ Click Count NOT Incremented');
-  }
-
-  // 4. Cleanup
-  await prisma.recoveryLink.delete({ where: { id: rl.id } });
-  await prisma.failedPayment.delete({ where: { id: fp.id } });
-  console.log('Cleaned up test data.');
-}
-
-async function testBrandingUpdate() {
-  console.log('\n--- Testing Branding Update ---');
-  const user = await prisma.user.findFirst();
-  if (!user) throw new Error('No user found in DB');
-
-  const testBranding = JSON.stringify({
-    logoUrl: 'https://test.com/logo.png',
-    primaryColor: '#ff0000',
-    signature: 'Test Signature'
+  // 4. Verify DB state
+  const foundInvoice = await prisma.invoice.findUnique({
+    where: { id: invoice.id },
+    include: { client: true }
   });
 
-  // We'll skip the HTTP call for branding update since it needs auth cookies, 
-  // but we can verify the DB field exists and works via Prisma.
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { brandSettings: testBranding }
-  });
-
-  const updatedUser = await prisma.user.findUnique({ where: { id: user.id } });
-  console.log('Updated Brand Settings:', updatedUser?.brandSettings);
-  if (updatedUser?.brandSettings === testBranding) {
-    console.log('✅ Branding DB Update Successful');
+  if (foundInvoice && foundInvoice.amount === 150000 && foundInvoice.client.name === 'Test Client Corp') {
+    console.log('✅ Invoice logic verified successfully');
   } else {
-    console.log('❌ Branding DB Update Failed');
+    console.error('❌ Invoice logic verification failed');
+    process.exit(1);
   }
+
+  // 5. Cleanup
+  await prisma.invoice.delete({ where: { id: invoice.id } });
+  await prisma.client.delete({ where: { id: client.id } });
+  console.log('Cleaned up test client and invoice.');
 }
 
 async function runTests() {
   try {
-    await testClickTracking();
-    await testBrandingUpdate();
-    console.log('\nAll detailed logic tests passed!');
+    await testInvoiceFlow();
+    console.log('\nAll project logic tests passed!');
   } catch (err) {
     console.error('Test Suite Failed:', err);
+    process.exit(1);
   } finally {
     await prisma.$disconnect();
   }

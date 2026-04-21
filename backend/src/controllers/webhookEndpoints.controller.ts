@@ -20,10 +20,25 @@ const PRIVATE_RANGES = [
 
 async function isPrivateUrl(rawUrl: string): Promise<boolean> {
   try {
-    const { hostname } = new URL(rawUrl);
-    const ips = net.isIP(hostname)
-      ? [hostname]
-      : (await dns.resolve4(hostname).catch(() => []));
+    const { hostname, protocol } = new URL(rawUrl);
+
+    // Only allow http/https — block file://, ftp://, etc.
+    if (protocol !== 'http:' && protocol !== 'https:') return true;
+
+    if (net.isIP(hostname)) {
+      return PRIVATE_RANGES.some(r => r.test(hostname));
+    }
+
+    // Resolve both A (IPv4) and AAAA (IPv6) records
+    const [v4, v6] = await Promise.all([
+      dns.resolve4(hostname).catch(() => [] as string[]),
+      dns.resolve6(hostname).catch(() => [] as string[]),
+    ]);
+    const ips = [...v4, ...v6];
+
+    // If DNS returned no records at all, treat as unsafe
+    if (ips.length === 0) return true;
+
     return ips.some(ip => PRIVATE_RANGES.some(r => r.test(ip)));
   } catch {
     return true; // treat unresolvable as unsafe
@@ -78,6 +93,11 @@ export const createEndpoint = async (req: AuthRequest, res: Response, next: Next
     if (!parsed.success) return errorResponse(res, parsed.error.issues[0]?.message ?? 'Invalid request', 400);
 
     const { url, events, active } = parsed.data;
+
+    if (await isPrivateUrl(url)) {
+      return errorResponse(res, 'Delivery to private/internal addresses is not allowed', 400);
+    }
+
     const secret = crypto.randomBytes(32).toString('hex');
 
     const endpoint = await prisma.webhookEndpoint.create({
@@ -101,6 +121,11 @@ export const updateEndpoint = async (req: AuthRequest, res: Response, next: Next
     if (!parsed.success) return errorResponse(res, parsed.error.issues[0]?.message ?? 'Invalid request', 400);
 
     const { url, events, active } = parsed.data;
+
+    if (url !== undefined && await isPrivateUrl(url)) {
+      return errorResponse(res, 'Delivery to private/internal addresses is not allowed', 400);
+    }
+
     const updated = await prisma.webhookEndpoint.update({
       where: { id },
       data: {

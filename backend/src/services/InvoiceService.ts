@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { prisma } from '../utils/prisma.js';
 import { sendInvoiceEmail } from '../lib/resend.js';
 import { StripeBillingService } from './StripeBillingService.js';
@@ -37,7 +38,7 @@ export class InvoiceService {
       data: {
         userId,
         clientId: client.id,
-        number: `INV-${Date.now()}`,
+        number: `INV-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
         clientEmail: data.clientEmail,
         description: data.description,
         amount: data.amount,
