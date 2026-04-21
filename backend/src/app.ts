@@ -120,7 +120,7 @@ app.get('/api/csrf-token', (_req, res) => {
 });
 
 // Health Check
-const HEARTBEAT_KEY = 'stripepay:worker:heartbeat';
+const HEARTBEAT_KEY = 'stripeflow:worker:heartbeat';
 const WORKER_STALE_MS = 150_000; // matches worker TTL
 
 app.get('/health', async (_req, res) => {

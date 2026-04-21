@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "stripe-pay",
+  "name": "stripeflow",
   "builds": [
     {
       "src": "frontend/package.json",
@@ -8,18 +8,19 @@
       "config": { "distDir": "dist" }
     },
     {
-      "src": "backend/src/app.ts",
+      "src": "api/index.ts",
       "use": "@vercel/node"
     }
   ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "backend/src/app.ts"
+      "destination": "api/index.ts"
     },
     {
       "source": "/(.*)",
       "destination": "frontend/index.html"
     }
-  ]
+  ],
+  "cleanUrls": true
 }
