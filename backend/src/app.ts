@@ -40,9 +40,6 @@ const rawAllowed = process.env.ALLOWED_ORIGINS || '';
 const parsedAllowed = rawAllowed.split(',').map(o => o.trim()).filter(Boolean);
 logger.info({ rawAllowed, parsedAllowed }, 'CORS Configuration Initialized');
 
-// Build CSP connect-src from env so it stays valid across domain changes
-const cspConnectSrc = ["'self'", ...parsedAllowed, 'http://localhost:5173'].filter(Boolean);
-
 // Enable trust proxy for correct IP detection in cloud environments
 app.set('trust proxy', 1);
 
@@ -71,7 +68,9 @@ app.use(cors({
   origin: (origin, callback) => {
     const whitelist = [...parsedAllowed, 'http://localhost:5173', 'http://localhost:5174'];
     const isDev = process.env.NODE_ENV === 'development';
-    if (!origin || whitelist.includes(origin) || origin.endsWith('.vercel.app') || (isDev && origin.startsWith('http://localhost:'))) {
+    // No wildcard *.vercel.app — only explicitly listed origins are trusted.
+    // In dev, any localhost port is allowed for convenience.
+    if (!origin || whitelist.includes(origin) || (isDev && origin.startsWith('http://localhost:'))) {
       callback(null, true);
     } else {
       callback(new Error(`CORS blocked for origin: ${origin}`));
@@ -168,7 +167,7 @@ app.get('/health', async (_req, res) => {
 });
 
 // Queue Stats (authenticated — for dashboard use)
-app.get('/api/queue/stats', requireAuth, async (req, res) => {
+app.get('/api/queue/stats', requireAuth, async (_req, res) => {
   try {
     const queue = new Queue('payment-recovery', { connection: redisConnection });
     const counts = await queue.getJobCounts('waiting', 'active', 'failed', 'delayed', 'completed');

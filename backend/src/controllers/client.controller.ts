@@ -36,7 +36,9 @@ export class ClientController {
       const userId = String(req.userId);
       const existing = await prisma.client.findFirst({ where: { id, userId } });
       if (!existing) return errorResponse(res, 'Client not found', 404);
-      const client = await prisma.client.update({ where: { id }, data: req.body });
+      // Whitelist mutable fields — prevents userId/id injection via req.body
+      const { name, email, phone, company } = req.body;
+      const client = await prisma.client.update({ where: { id }, data: { name, email, phone, company } });
       successResponse(res, client);
     } catch (err) {
       next(err);

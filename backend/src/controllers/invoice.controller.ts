@@ -9,17 +9,27 @@ export class InvoiceController {
   static async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { clientId, clientEmail, description, amount, dueDate, currency } = req.body;
-      
+
       if (!clientEmail || !description || !amount || !dueDate) {
         return errorResponse(res, 'Missing required fields', 400);
+      }
+
+      const parsedAmount = parseInt(amount, 10);
+      if (!Number.isInteger(parsedAmount) || parsedAmount <= 0 || parsedAmount > 99_999_999) {
+        return errorResponse(res, 'Amount must be a positive integer (in cents, max $999,999.99)', 400);
+      }
+
+      const parsedDue = new Date(dueDate);
+      if (isNaN(parsedDue.getTime())) {
+        return errorResponse(res, 'Invalid due date', 400);
       }
 
       const result = await InvoiceService.createInvoice(req.userId!, {
         clientId,
         clientEmail,
         description,
-        amount: parseInt(amount, 10),
-        dueDate: new Date(dueDate),
+        amount: parsedAmount,
+        dueDate: parsedDue,
         currency
       });
 
@@ -32,8 +42,14 @@ export class InvoiceController {
   static async list(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { page = 1, limit = 10, search, status, clientId, sortKey = 'createdAt', sortDir = 'desc' } = req.query;
+
+      const ALLOWED_SORT_KEYS = ['createdAt', 'updatedAt', 'dueDate', 'amount', 'status'] as const;
+      const ALLOWED_SORT_DIRS = ['asc', 'desc'] as const;
+      const safeSortKey = ALLOWED_SORT_KEYS.includes(String(sortKey) as any) ? String(sortKey) : 'createdAt';
+      const safeSortDir = ALLOWED_SORT_DIRS.includes(String(sortDir) as any) ? (String(sortDir) as 'asc' | 'desc') : 'desc';
+
       const skip = (Number(page) - 1) * Number(limit);
-      const take = Number(limit);
+      const take = Math.min(Number(limit), 100); // cap at 100 per page
 
       const where: any = {
         userId: req.userId!,
@@ -41,9 +57,9 @@ export class InvoiceController {
         ...(clientId && { clientId: String(clientId) }),
         ...(search && {
           OR: [
-            { clientEmail: { contains: String(search) } },
-            { description: { contains: String(search) } },
-            { client: { name: { contains: String(search) } } }
+            { clientEmail: { contains: String(search), mode: 'insensitive' } },
+            { description: { contains: String(search), mode: 'insensitive' } },
+            { client: { name: { contains: String(search), mode: 'insensitive' } } }
           ]
         })
       };
@@ -52,7 +68,7 @@ export class InvoiceController {
         prisma.invoice.findMany({
           where,
           include: { client: true },
-          orderBy: { [String(sortKey)]: String(sortDir) },
+          orderBy: { [safeSortKey]: safeSortDir },
           skip,
           take
         }),
@@ -64,7 +80,7 @@ export class InvoiceController {
         total,
         page: Number(page),
         limit: Number(limit),
-        pages: Math.ceil(total / Number(limit))
+        pages: Math.ceil(total / take)
       });
     } catch (err) {
       next(err);

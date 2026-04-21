@@ -1,5 +1,4 @@
 import { prisma } from '../utils/prisma.js';
-import { generateInvoicePDF } from './pdf.service.js';
 import { sendInvoiceEmail } from '../lib/resend.js';
 import { StripeBillingService } from './StripeBillingService.js';
 import { enqueueInvoiceReminder } from '../jobs/invoice.queue.js';
@@ -19,17 +18,25 @@ export class InvoiceService {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new Error('User not found');
 
-    // 1. Resolve client
+    // 1. Resolve or create client
     let client = null;
     if (data.clientId) {
-      client = await prisma.client.findUnique({ where: { id: data.clientId } });
+      client = await prisma.client.findFirst({ where: { id: data.clientId, userId } });
+    }
+    if (!client) {
+      // Upsert an implicit client record keyed by (userId, email) so FK is always satisfied
+      client = await prisma.client.upsert({
+        where: { userId_email: { userId, email: data.clientEmail } },
+        create: { userId, name: data.clientEmail, email: data.clientEmail },
+        update: {},
+      });
     }
 
     // 2. Create database record
     const invoice = await prisma.invoice.create({
       data: {
         userId,
-        clientId: data.clientId ?? (client?.id ?? ''),
+        clientId: client.id,
         number: `INV-${Date.now()}`,
         clientEmail: data.clientEmail,
         description: data.description,
@@ -40,11 +47,7 @@ export class InvoiceService {
       }
     });
 
-    // 3. Generate PDF
-    const fallbackClient = { id: '', userId, name: data.clientEmail, email: data.clientEmail, phone: null, company: null, createdAt: new Date(), updatedAt: new Date() };
-    const pdfBuffer = await generateInvoicePDF({ ...invoice, user, client: client ?? fallbackClient, items: [] } as any);
-    
-    // In a real app, you'd upload this to S3:
+    // 3. PDF served on-demand at /api/invoices/:id/pdf (no upload step yet)
     const pdfUrl = `${process.env.BACKEND_URL ?? 'http://localhost:3000'}/api/invoices/${invoice.id}/pdf`;
 
     // 4. Create Stripe Payment Link/Session

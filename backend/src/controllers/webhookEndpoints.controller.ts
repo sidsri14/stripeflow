@@ -1,9 +1,34 @@
 import crypto from 'crypto';
+import dns from 'dns/promises';
+import net from 'net';
 import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '../middleware/auth.middleware.js';
 import { z } from 'zod';
 import { prisma } from '../utils/prisma.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
+
+const PRIVATE_RANGES = [
+  /^127\./,                        // loopback
+  /^10\./,                         // RFC-1918
+  /^172\.(1[6-9]|2\d|3[01])\./,   // RFC-1918
+  /^192\.168\./,                   // RFC-1918
+  /^169\.254\./,                   // link-local (AWS metadata etc.)
+  /^::1$/,                         // IPv6 loopback
+  /^fc00:/,                        // IPv6 unique-local
+  /^fe80:/,                        // IPv6 link-local
+];
+
+async function isPrivateUrl(rawUrl: string): Promise<boolean> {
+  try {
+    const { hostname } = new URL(rawUrl);
+    const ips = net.isIP(hostname)
+      ? [hostname]
+      : (await dns.resolve4(hostname).catch(() => []));
+    return ips.some(ip => PRIVATE_RANGES.some(r => r.test(ip)));
+  } catch {
+    return true; // treat unresolvable as unsafe
+  }
+}
 
 const VALID_EVENTS = [
   'payment.failed',
@@ -12,14 +37,17 @@ const VALID_EVENTS = [
   'payment.abandoned',
 ] as const;
 
+const isValidUrl = (val: string) => { try { new URL(val); return true; } catch { return false; } };
+const urlField = z.string().max(2048).refine(isValidUrl, { message: 'Must be a valid URL' });
+
 const createSchema = z.object({
-  url: z.string().url({ message: 'Must be a valid URL' }).max(2048),
+  url: urlField,
   events: z.array(z.enum(VALID_EVENTS)).min(1, { message: 'Select at least one event' }),
   active: z.boolean().optional().default(true),
 });
 
 const updateSchema = z.object({
-  url: z.string().url().max(2048).optional(),
+  url: urlField.optional(),
   events: z.array(z.enum(VALID_EVENTS)).min(1).optional(),
   active: z.boolean().optional(),
 });
@@ -36,9 +64,16 @@ export const listEndpoints = async (req: AuthRequest, res: Response, next: NextF
   } catch (err) { next(err); }
 };
 
+const MAX_ENDPOINTS_PER_USER = 10;
+
 /** POST /api/webhook-endpoints */
 export const createEndpoint = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const count = await prisma.webhookEndpoint.count({ where: { userId: req.userId! } });
+    if (count >= MAX_ENDPOINTS_PER_USER) {
+      return errorResponse(res, `Maximum of ${MAX_ENDPOINTS_PER_USER} webhook endpoints per account`, 400);
+    }
+
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) return errorResponse(res, parsed.error.issues[0]?.message ?? 'Invalid request', 400);
 
@@ -101,6 +136,10 @@ export const testEndpoint = async (req: AuthRequest, res: Response, next: NextFu
       select: { url: true, secret: true },
     });
     if (!ep) return errorResponse(res, 'Endpoint not found', 404);
+
+    if (await isPrivateUrl(ep.url)) {
+      return errorResponse(res, 'Delivery to private/internal addresses is not allowed', 400);
+    }
 
     const payload = JSON.stringify({
       event: 'ping',
