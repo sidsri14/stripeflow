@@ -26,4 +26,4 @@ RUN bunx prisma generate
 ENV PORT=3000
 EXPOSE 3000
 
-CMD ["bun", "src/main.ts"]
+CMD ["bun", "src/index.ts"]
