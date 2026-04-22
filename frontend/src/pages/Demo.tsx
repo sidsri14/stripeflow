@@ -54,16 +54,103 @@ const Demo: FC = () => {
     );
   }
 
-  if (error || !invoice) {
+  if (!invoiceId || error || !invoice) {
+    // Show a static mock invoice so visitors can see what the payment experience looks like
+    const mock = {
+      amount: 250000,
+      currency: 'USD',
+      description: 'Website Redesign — Phase 1',
+      number: 'INV-0042',
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      status: 'SENT',
+      client: { name: 'Acme Corp', company: 'Acme Corporation' },
+      user: { name: 'Your Name' },
+      paidAt: null,
+    };
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream p-6">
-        <div className="glass-card max-w-md text-center space-y-4">
-          <div className="bg-rose-50 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto">
-             <FileText className="w-8 h-8 text-rose-500" />
+      <div className="min-h-screen bg-cream selection:bg-emerald-100 selection:text-emerald-900 py-12 px-6">
+        <div className="max-w-xl mx-auto space-y-8">
+          <div className="flex justify-center items-center gap-2 opacity-50">
+            <div className="bg-stone-800 p-2 rounded-lg">
+              <CheckCircle2 className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold text-stone-800 uppercase tracking-widest text-xs">StripeFlow Secure Payment</span>
           </div>
-          <h1 className="text-2xl font-bold text-stone-800">Invoice not found</h1>
-          <p className="text-stone-500">{error || 'This link may have expired or is incorrect.'}</p>
-          <button onClick={() => window.location.href = '/'} className="btn-primary w-full justify-center">Go to Homepage</button>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-6 py-4 flex items-center gap-3 text-sm text-amber-700 font-medium">
+            <FileText className="w-4 h-4 shrink-0 text-amber-500" />
+            This is a <strong>demo preview</strong> — no real payment will be processed.
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-card !p-0 overflow-hidden shadow-2xl"
+          >
+            <div className="p-8 text-center text-white bg-stone-800">
+              <h1 className="text-4xl font-black mb-2">{formatAmount(mock.amount)}</h1>
+              <p className="font-bold uppercase tracking-widest text-[10px] opacity-70">
+                Due by {new Date(mock.dueDate).toDateString()}
+              </p>
+            </div>
+
+            <div className="p-8 space-y-8">
+              <div className="space-y-4">
+                <div className="flex justify-between items-end border-b border-stone-50 pb-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-stone-400 block mb-1">Description</label>
+                    <p className="font-bold text-stone-800">{mock.description}</p>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-stone-400 block mb-1 text-right">Invoice #</label>
+                    <p className="font-mono text-xs text-stone-500">{mock.number}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 py-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-stone-400 block mb-1">Billed To</label>
+                    <p className="font-bold text-stone-800">{mock.client.name}</p>
+                    <p className="text-xs text-stone-500">{mock.client.company}</p>
+                  </div>
+                  <div className="text-right">
+                    <label className="text-[10px] font-black uppercase text-stone-400 block mb-1">Issued By</label>
+                    <p className="font-bold text-stone-800">{mock.user.name}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <button
+                  onClick={() => window.location.href = '/register'}
+                  className="w-full btn-primary !py-5 justify-center flex items-center gap-3 text-lg shadow-xl shadow-emerald-500/20"
+                >
+                  <CreditCard className="w-6 h-6" />
+                  Pay {formatAmount(mock.amount)} with Stripe
+                </button>
+                <p className="text-center text-xs text-stone-400">
+                  Want to send invoices like this?{' '}
+                  <a href="/register" className="text-emerald-600 font-bold hover:underline">Create a free account →</a>
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-stone-50 p-6 flex justify-center items-center gap-6">
+              <div className="flex items-center gap-1.5 opacity-40">
+                <ShieldCheck className="w-4 h-4" />
+                <span className="text-[8px] font-black uppercase tracking-widest">SSL Encrypted</span>
+              </div>
+              <div className="flex items-center gap-1.5 opacity-40">
+                <CreditCard className="w-4 h-4" />
+                <span className="text-[8px] font-black uppercase tracking-widest">Stripe Secure</span>
+              </div>
+            </div>
+          </motion.div>
+
+          <p className="text-center text-[10px] uppercase font-bold tracking-widest text-stone-400">
+            Powered by StripeFlow &middot; Instant Freelancer Invoicing
+          </p>
         </div>
       </div>
     );

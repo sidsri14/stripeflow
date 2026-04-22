@@ -88,6 +88,9 @@ const Security: FC = () => {
           <div className="p-20 text-center">
             <Shield className="w-12 h-12 text-stone-300 dark:text-stone-700 mx-auto opacity-50 mb-4" />
             <h3 className="text-lg font-black text-stone-400 uppercase tracking-wider">No Activity Logged</h3>
+            <p className="text-sm text-stone-400 dark:text-stone-500 mt-2 font-medium">
+              Activity events such as logins, API key creation, and webhook changes will appear here.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">

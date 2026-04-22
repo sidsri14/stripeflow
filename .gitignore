@@ -17,3 +17,4 @@ graphify-out/
 scratch/
 .vercel
 stripe.exe
+node_modules/

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FC } from 'react';
-import { Palette, Mail, MessageSquare, Shield, Loader2, Save, Type, RotateCcw, Building2 } from 'lucide-react';
+import { Palette, Mail, MessageSquare, Shield, Loader2, Save, Type, RotateCcw, Building2, Image } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../api';
 import toast from 'react-hot-toast';
@@ -11,6 +11,7 @@ const Branding: FC = () => {
   const [settings, setSettings] = useState({
     companyName: '',
     supportEmail: '',
+    logoUrl: '',
     accentColor: '#059669',
     emailTone: 'professional',
     emailSubject: 'Payment recovery for {invoice_number}',
@@ -27,6 +28,7 @@ const Branding: FC = () => {
         setSettings({
           companyName: brandObj.companyName || '',
           supportEmail: brandObj.supportEmail || user.email,
+          logoUrl: brandObj.logoUrl || '',
           accentColor: brandObj.accentColor || '#059669',
           emailTone: user.brandEmailTone || 'professional',
           emailSubject: user.brandEmailSubject || 'Payment recovery for {invoice_number}',
@@ -53,6 +55,7 @@ const Branding: FC = () => {
         brandSettings: {
           companyName: settings.companyName,
           supportEmail: settings.supportEmail,
+          logoUrl: settings.logoUrl,
           accentColor: settings.accentColor,
           showLogo: settings.showLogo,
         },
@@ -138,6 +141,31 @@ const Branding: FC = () => {
                   className="w-full px-5 py-3.5 rounded-2xl bg-stone-50 dark:bg-stone-900/50 border border-warm-border dark:border-stone-700 font-bold text-stone-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 flex items-center gap-1.5">
+                <Image className="w-3 h-3" /> Logo URL
+              </label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="url"
+                  value={settings.logoUrl}
+                  onChange={(e) => setSettings({ ...settings, logoUrl: e.target.value })}
+                  placeholder="https://yoursite.com/logo.png"
+                  className="flex-1 px-5 py-3.5 rounded-2xl bg-stone-50 dark:bg-stone-900/50 border border-warm-border dark:border-stone-700 font-bold text-stone-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                />
+                {settings.logoUrl && (
+                  <img
+                    src={settings.logoUrl}
+                    alt="Logo preview"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    onLoad={(e) => { (e.target as HTMLImageElement).style.display = 'block'; }}
+                    className="w-12 h-12 rounded-xl object-contain border border-warm-border dark:border-stone-700 bg-white dark:bg-stone-800 p-1"
+                  />
+                )}
+              </div>
+              <p className="text-[10px] text-stone-400 italic">Shown in invoice emails and the Stripe checkout page.</p>
             </div>
           </section>
 
@@ -243,8 +271,13 @@ const Branding: FC = () => {
 
                 <div className="bg-white rounded-2xl p-4 shadow-xl">
                   <div className="flex flex-col items-center gap-3 py-4">
-                    <div className="w-12 h-12 bg-stone-100 rounded-xl flex items-center justify-center">
-                      <Building2 className="w-6 h-6 text-stone-400" />
+                    <div className="w-12 h-12 bg-stone-100 rounded-xl flex items-center justify-center overflow-hidden">
+                      {settings.logoUrl ? (
+                        <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain p-1"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      ) : (
+                        <Building2 className="w-6 h-6 text-stone-400" />
+                      )}
                     </div>
                     <p className="text-sm font-black text-stone-800">{settings.companyName || 'Your Brand'}</p>
                     <div className="h-2 w-3/4 bg-stone-100 rounded-full" />

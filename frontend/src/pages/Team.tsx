@@ -144,7 +144,7 @@ const Team = () => {
           </div>
           <h2 className="text-4xl font-black text-stone-900 dark:text-white mb-4 tracking-tight">Collaborate with your team</h2>
           <p className="text-lg text-stone-500 dark:text-stone-400 mb-10 font-medium">
-            Organizations allow you to share payment sources, track recovery performance collectively, and manage permissions.
+            Organizations let you share invoices, track payment performance collectively, and control what each teammate can see and do.
           </p>
           <button
             onClick={() => setShowCreateOrg(true)}
@@ -262,12 +262,12 @@ const Team = () => {
               <Shield className="w-8 h-8 mb-4 opacity-50" />
               <h3 className="text-xl font-black mb-2 leading-tight">Secure Collaboration</h3>
               <p className="text-emerald-100 text-sm font-medium leading-relaxed mb-6">
-                Only owners and admins can manage payment sources and billing settings. Members have read-only access to recovery data.
+                Only owners and admins can manage invoices and billing settings. Members have read-only access to the shared dashboard.
               </p>
               <div className="h-[1px] bg-white/10 w-full mb-6" />
               <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Permissions</p>
               <ul className="mt-3 space-y-2 text-xs font-semibold">
-                <li className="flex items-center gap-2 italic"><CheckCircle2 className="w-3 h-3 text-emerald-300" /> Share Webhooks</li>
+                <li className="flex items-center gap-2 italic"><CheckCircle2 className="w-3 h-3 text-emerald-300" /> Shared Invoice Workspace</li>
                 <li className="flex items-center gap-2 italic"><CheckCircle2 className="w-3 h-3 text-emerald-300" /> Unified Dashboard</li>
                 <li className="flex items-center gap-2 italic"><CheckCircle2 className="w-3 h-3 text-emerald-300" /> Audit Trail Logging</li>
               </ul>
