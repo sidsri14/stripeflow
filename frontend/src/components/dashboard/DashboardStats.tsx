@@ -120,7 +120,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         </div>
         
         <div className="h-80 w-full">
-          {stats?.timeseries && stats.timeseries.length > 1 ? (
+          {stats?.timeseries && stats.timeseries.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={stats.timeseries} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>

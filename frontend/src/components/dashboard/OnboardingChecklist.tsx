@@ -19,29 +19,29 @@ export const OnboardingChecklist: React.FC<OnboardingProps> = ({
   const steps = [
     {
       id: 'source',
-      label: 'Connect Payment Source',
+      label: 'Add your first client',
       done: hasSources,
       action: onOpenSources,
-      btn: hasSources ? 'Connected' : 'Connect now',
+      btn: hasSources ? 'Done' : 'Add client',
     },
     {
       id: 'failure',
-      label: 'Receive a Failed Payment',
+      label: 'Create your first invoice',
       done: hasFailure,
       action: onSimulate,
-      btn: hasFailure ? 'Received' : 'Simulate for test',
+      btn: hasFailure ? 'Done' : 'Create invoice',
       loading: simulating,
     },
     {
       id: 'recovery',
-      label: 'Recover your first payment',
+      label: 'Get your first payment',
       done: hasRecovery,
       action: () => {},
-      btn: hasRecovery ? 'Recovered' : 'Waiting...',
+      btn: hasRecovery ? 'Done' : 'Waiting...',
     },
     {
       id: 'upgrade',
-      label: 'Enable Auto-Recovery (Pro)',
+      label: 'Upgrade to Pro Plan',
       done: plan === 'starter' || plan === 'pro',
       action: onUpgrade,
       btn: plan === 'starter' || plan === 'pro' ? 'Active' : 'Upgrade now',
@@ -57,7 +57,7 @@ export const OnboardingChecklist: React.FC<OnboardingProps> = ({
         </div>
         <div>
           <h3 className="text-lg font-bold text-stone-800 dark:text-stone-100">Getting Started</h3>
-          <p className="text-xs text-stone-400 font-medium">Follow these steps to recover your first payment</p>
+          <p className="text-xs text-stone-400 font-medium">Follow these steps to send your first invoice</p>
         </div>
       </div>
 

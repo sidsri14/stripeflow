@@ -242,35 +242,29 @@ const Dashboard: FC<{ user: AuthUser }> = ({ user }) => {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-50/50 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-800">
-                  <tr>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Identity / Invoice</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Revenue Impact</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Status Hub</th>
-                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                  <AnimatePresence mode="popLayout">
-                    {payments.map((invoice: any) => (
-                      <PaymentRow
-                        key={invoice.id}
-                        payment={{
-                          ...invoice,
-                          customerName: invoice.client?.name,
-                          customerEmail: invoice.clientEmail
-                        }}
-                        isPaid={isPaid}
-                        onRetry={(id) => sendReminderMutation.mutate(id)}
-                        onUpgrade={() => setShowUpgradeModal(true)}
-                        onView={(id) => navigate(`/invoices/${id}`)}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </tbody>
-              </table>
+            <div>
+              <div className="flex px-8 py-5 bg-slate-50/50 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-800 gap-6">
+                <span className="flex-1 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Identity / Invoice</span>
+                <span className="shrink-0 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Action</span>
+              </div>
+              <ul className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                <AnimatePresence mode="popLayout">
+                  {payments.map((invoice: any) => (
+                    <PaymentRow
+                      key={invoice.id}
+                      payment={{
+                        ...invoice,
+                        customerName: invoice.client?.name,
+                        customerEmail: invoice.clientEmail
+                      }}
+                      isPaid={isPaid}
+                      onRetry={(id) => sendReminderMutation.mutate(id)}
+                      onUpgrade={() => setShowUpgradeModal(true)}
+                      onView={(id) => navigate(`/invoices/${id}`)}
+                    />
+                  ))}
+                </AnimatePresence>
+              </ul>
             </div>
           )}
 

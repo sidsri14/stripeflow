@@ -171,9 +171,9 @@ const Settings: FC<Props> = ({ user, onUpdateUser }) => {
               )}
             </div>
             <ul className="space-y-3 mb-8">
-              <li className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><Check className="w-4 h-4 text-emerald-500" /> Failed payment monitoring</li>
+              <li className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><Check className="w-4 h-4 text-emerald-500" /> Up to 5 invoices/month</li>
               <li className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><Check className="w-4 h-4 text-emerald-500" /> Dashboard analytics</li>
-              <li className="flex items-center gap-2 text-sm text-stone-400 line-through opacity-50">Automated email recovery</li>
+              <li className="flex items-center gap-2 text-sm text-stone-400 line-through opacity-50">Automated payment reminders</li>
             </ul>
             {user.plan !== 'free' && (
               <a
