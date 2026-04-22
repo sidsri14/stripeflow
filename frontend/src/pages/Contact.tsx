@@ -145,10 +145,10 @@ const Contact = () => {
                 </div>
                 <h3 className="text-2xl font-black text-stone-800 dark:text-white">Message Dispatched!</h3>
                 <p className="text-center text-stone-400 mb-8 font-medium text-sm">
-                  Create your account to get started.
+                  We'll be in touch within 12 hours.
                 </p>
                 <p className="text-stone-500 dark:text-stone-400 font-medium">
-                  We've received your request and will get back to you within 12 hours.
+                  We've received your message and our team is on it.
                 </p>
                 <button
                   onClick={() => { setSubmitted(false); setForm({ name: '', email: '', message: '' }); }}

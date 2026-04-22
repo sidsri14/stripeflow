@@ -3,6 +3,9 @@ import type { AuthRequest } from '../middleware/auth.middleware.js';
 import { prisma } from '../utils/prisma.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
+const esc = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+
 /**
  * Handle organizational and team management logic.
  * Part of Phase 6: Team Support.
@@ -25,7 +28,10 @@ export const getMyOrganizations = async (req: AuthRequest, res: Response, next: 
 export const createOrganization = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { name } = req.body;
-    if (!name) return errorResponse(res, 'Organization name is required', 400);
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return errorResponse(res, 'Organization name is required', 400);
+    }
+    if (name.length > 100) return errorResponse(res, 'Name must be 100 characters or fewer', 400);
 
     const organization = await prisma.organization.create({
       data: {
@@ -122,7 +128,7 @@ export const inviteUser = async (req: AuthRequest, res: Response, next: NextFunc
     void sendEmail({
       to: userToInvite.email,
       subject: `You've been invited to join ${newMember.organization.name} on StripeFlow`,
-      html: `<h2>Team Invitation</h2><p><strong>${inviter?.name || 'A teammate'}</strong> has invited you to join <strong>${newMember.organization.name}</strong> on StripeFlow.</p><p><a href="${inviteLink}" style="background:#000;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;">Go to Dashboard</a></p>`,
+      html: `<h2>Team Invitation</h2><p><strong>${esc(inviter?.name || 'A teammate')}</strong> has invited you to join <strong>${esc(newMember.organization.name)}</strong> on StripeFlow.</p><p><a href="${inviteLink}" style="background:#000;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;">Go to Dashboard</a></p>`,
     }).catch((err: unknown) => console.error('[InviteEmail] Failed to send:', err));
 
     successResponse(res, newMember, 201);

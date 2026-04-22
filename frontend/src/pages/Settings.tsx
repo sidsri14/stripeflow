@@ -224,11 +224,11 @@ const Settings: FC<Props> = ({ user, onUpdateUser }) => {
             <div className="text-right shrink-0">
               {billingData.subscription.currentPeriodEnd ? (
                 <p className="text-sm font-semibold text-stone-700 dark:text-stone-200">
-                  Renews {new Date(billingData.subscription.currentPeriodEnd).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  Renews {new Date(billingData.subscription.currentPeriodEnd).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
               ) : billingData.subscription.cancelledAt ? (
                 <p className="text-sm font-semibold text-rose-500">
-                  Cancelled {new Date(billingData.subscription.cancelledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  Cancelled {new Date(billingData.subscription.cancelledAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
               ) : null}
               <p className="text-xs text-stone-400 uppercase tracking-wide mt-0.5">{billingData.subscription.status}</p>
@@ -452,7 +452,7 @@ const Settings: FC<Props> = ({ user, onUpdateUser }) => {
       </section>
 
       <div className="pt-8 border-t border-warm-border dark:border-stone-800">
-        <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest text-center">User ID: {user.id} · Joined {new Date(user.createdAt).toLocaleDateString('en-IN', { dateStyle: 'long' })}</p>
+        <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest text-center">User ID: {user.id} · Joined {new Date(user.createdAt).toLocaleDateString(undefined, { dateStyle: 'long' })}</p>
       </div>
     </motion.div>
   );

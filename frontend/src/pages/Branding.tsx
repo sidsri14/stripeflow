@@ -22,7 +22,8 @@ const Branding: FC = () => {
       const { data } = await api.get('/auth/me');
       if (data.success) {
         const user = data.data;
-        const brandObj = JSON.parse(user.brandSettings || '{}');
+        let brandObj: Record<string, any> = {};
+        try { brandObj = JSON.parse(user.brandSettings || '{}'); } catch { /* use defaults */ }
         setSettings({
           companyName: brandObj.companyName || '',
           supportEmail: brandObj.supportEmail || user.email,
@@ -194,8 +195,8 @@ const Branding: FC = () => {
               <div className="relative w-20 h-20 rounded-3xl overflow-hidden shadow-inner border border-stone-200 dark:border-stone-700">
                 <input
                   type="color"
-                  value={settings.brandColor}
-                  onChange={(e) => setSettings({ ...settings, brandColor: e.target.value })}
+                  value={settings.accentColor}
+                  onChange={(e) => setSettings({ ...settings, accentColor: e.target.value })}
                   className="absolute inset-0 w-[200%] h-[200%] -translate-x-1/4 -translate-y-1/4 cursor-pointer"
                 />
               </div>
@@ -203,11 +204,11 @@ const Branding: FC = () => {
                 <p className="text-sm font-bold text-stone-800 dark:text-white">Primary Accent</p>
                 <p className="text-xs text-stone-400">Used for buttons, links, and headers in recovery emails and checkout pages.</p>
                 <code className="text-[10px] font-mono bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded-md text-stone-500 mt-2 inline-block">
-                  {settings.brandColor.toUpperCase()}
+                  {settings.accentColor.toUpperCase()}
                 </code>
               </div>
               <button
-                onClick={() => setSettings({ ...settings, brandColor: '#059669' })}
+                onClick={() => setSettings({ ...settings, accentColor: '#059669' })}
                 className="p-2.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-all text-stone-400"
                 title="Reset to default"
               >
@@ -250,7 +251,7 @@ const Branding: FC = () => {
                     <div className="h-2 w-1/2 bg-stone-100 rounded-full" />
                     <div
                       className="w-full h-8 rounded-lg mt-2 flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-white shadow-lg mx-auto"
-                      style={{ backgroundColor: settings.brandColor }}
+                      style={{ backgroundColor: settings.accentColor }}
                     >
                       Pay Now
                     </div>

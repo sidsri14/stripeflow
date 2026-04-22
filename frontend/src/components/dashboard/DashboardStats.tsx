@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, RotateCcw, CheckCircle2, AlertTriangle, IndianRupee } from 'lucide-react';
+import { TrendingUp, RotateCcw, CheckCircle2, AlertTriangle, DollarSign } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '../../utils/cn';
+import { formatAmount } from '../../utils/format';
 
 interface DashboardStatsProps {
   stats: {
@@ -24,7 +25,7 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   const cards = [
     {
       label: 'Collected Revenue',
-      value: `₹${((stats?.paidVolume ?? 0) / 100).toLocaleString('en-IN')}`,
+      value: formatAmount(stats?.paidVolume ?? 0),
       sub: 'Successfully recovered',
       icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
       color: 'emerald',
@@ -45,9 +46,9 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
     },
     {
       label: 'Total Invoiced',
-      value: `₹${((stats?.totalVolume ?? 0) / 100).toLocaleString('en-IN')}`,
+      value: formatAmount(stats?.totalVolume ?? 0),
       sub: 'Gross engine volume',
-      icon: <IndianRupee className="w-5 h-5 text-indigo-500" />,
+      icon: <DollarSign className="w-5 h-5 text-indigo-500" />,
       color: 'indigo',
     },
     {
@@ -145,13 +146,13 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
                    axisLine={false} 
                    tickLine={false} 
                    tick={{ fontSize: 9, fill: '#64748b', fontWeight: 800 }} 
-                   tickFormatter={(val) => `₹${(val/100).toLocaleString('en-IN')}`} 
+                   tickFormatter={(val) => formatAmount(val)}
                 />
                 <Tooltip 
                   contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)' }}
                   labelStyle={{ fontWeight: '900', color: '#0f172a', marginBottom: '8px', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}
                   itemStyle={{ fontSize: '11px', fontWeight: '700' }}
-                  formatter={(value: any, name: any) => [`₹${(Number(value)/100).toLocaleString('en-IN')}`, name === 'paid' ? 'Collected' : 'Invoiced']}
+                  formatter={(value: any, name: any) => [formatAmount(Number(value)), name === 'paid' ? 'Collected' : 'Invoiced']}
                 />
                 <Area type="monotone" dataKey="volume" stroke="#6366f1" strokeWidth={4} fillOpacity={1} fill="url(#colorInv)" animationDuration={2000} />
                 <Area type="monotone" dataKey="paid" stroke="#10b981" strokeWidth={4} fillOpacity={1} fill="url(#colorPaid)" animationDuration={2000} />
