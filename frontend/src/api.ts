@@ -17,9 +17,9 @@ const getDefaultApiUrl = () => {
   return 'http://localhost:3000/api';
 };
 
-// For production on Vercel, always use the unified /api route.
-// Ignore stale VITE_API_URL environment variables from old deployments.
-export const API_URL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || getDefaultApiUrl());
+// For production on Vercel, default to the unified /api route (proxied via vercel.json).
+// Allow VITE_API_URL to override if provided in the Vercel dashboard.
+export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : getDefaultApiUrl());
 
 if (import.meta.env.PROD && API_URL.includes('localhost')) {
   console.warn('⚠️ API_URL points to localhost in a production build. Check VITE_API_URL.');
