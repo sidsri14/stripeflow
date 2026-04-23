@@ -327,7 +327,7 @@ function App() {
                     <Route path="/settings" element={<Settings user={user} onUpdateUser={(u) => setUser(u)} />} />
                     <Route path="/security" element={<Security />} />
                     <Route path="/team" element={<Team />} />
-                    <Route path="/branding" element={<Branding />} />
+                    <Route path="/branding" element={<Branding user={user} onUpdateUser={(u) => setUser(u)} />} />
                     <Route path="/webhooks" element={<Webhooks />} />
                     <Route path="/api-keys" element={<ApiKeys />} />
                     <Route path="*" element={<Navigate to="/dashboard" />} />

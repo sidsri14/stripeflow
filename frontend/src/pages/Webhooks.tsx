@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api';
 import toast from 'react-hot-toast';
 import { ConfirmModal } from '../components/shared/ConfirmModal';
+import { SettingsNav } from '../components/common/SettingsNav';
 
 const ALL_EVENTS = [
   { id: 'payment.failed',    label: 'Payment Failed',    desc: 'New failed payment received' },
@@ -361,6 +362,7 @@ const Webhooks: FC = () => {
       animate={{ opacity: 1, y: 0 }}
       className="max-w-4xl mx-auto space-y-8 pb-20"
     >
+      <SettingsNav />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-4xl font-black text-stone-900 dark:text-white tracking-tight">StripeFlow Webhooks</h1>

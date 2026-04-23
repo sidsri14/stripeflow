@@ -32,15 +32,28 @@ export const api = axios.create({
 });
 
 // Phase 2: CSRF Token — cached per page load
+// csrfFetchInFlight shares the in-flight promise across concurrent callers so only
+// one fetch fires at a time, preventing the race where two requests both see
+// csrfToken===null, both fetch, and the second token overwrites the cookie while the
+// first request already has the old token in its header → 403.
 let csrfToken: string | null = null;
+let csrfFetchInFlight: Promise<string> | null = null;
 const getCsrfToken = async (): Promise<string> => {
-  if (!csrfToken) {
-    // API_URL is .../api, backend CSRF endpoint is .../api/csrf-token.
-    // Use the absolute URL to avoid any interceptor loops or relative path confusion.
-    const { data } = await axios.get(`${API_URL}/csrf-token`, { withCredentials: true });
-    csrfToken = data.token;
+  if (csrfToken) return csrfToken;
+  if (!csrfFetchInFlight) {
+    csrfFetchInFlight = axios
+      .get(`${API_URL}/csrf-token`, { withCredentials: true })
+      .then(({ data }) => {
+        csrfToken = data.token;
+        csrfFetchInFlight = null;
+        return csrfToken!;
+      })
+      .catch((err) => {
+        csrfFetchInFlight = null;
+        throw err;
+      });
   }
-  return csrfToken!;
+  return csrfFetchInFlight;
 };
 
 // Attach the CSRF token to every state-changing request

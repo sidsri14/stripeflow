@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { api, API_URL } from '../api';
 import toast from 'react-hot-toast';
 import type { AuthUser } from '../App';
+import { SettingsNav } from '../components/common/SettingsNav';
 
 interface Props {
   user: AuthUser;
@@ -143,6 +144,7 @@ const Settings: FC<Props> = ({ user, onUpdateUser }) => {
       animate={{ opacity: 1, y: 0 }}
       className="max-w-4xl mx-auto space-y-16 pb-20"
     >
+      <SettingsNav />
       <header>
         <h1 className="text-3xl font-bold text-stone-800 dark:text-stone-100 tracking-tight">
           Settings

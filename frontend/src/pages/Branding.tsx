@@ -1,64 +1,54 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { FC } from 'react';
 import { Palette, Mail, MessageSquare, Shield, Loader2, Save, Type, RotateCcw, Building2, Image } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../api';
 import toast from 'react-hot-toast';
+import type { AuthUser } from '../App';
+import { SettingsNav } from '../components/common/SettingsNav';
 
-const Branding: FC = () => {
-  const [loading, setLoading] = useState(true);
+interface Props {
+  user: AuthUser;
+  onUpdateUser: (user: AuthUser) => void;
+}
+
+const Branding: FC<Props> = ({ user, onUpdateUser }) => {
   const [saving, setSaving] = useState(false);
+
+  const brandObj = (() => {
+    try { return JSON.parse(user.brandSettings || '{}'); } catch { return {}; }
+  })();
+
   const [settings, setSettings] = useState({
-    companyName: '',
-    supportEmail: '',
-    logoUrl: '',
-    accentColor: '#059669',
-    emailTone: 'professional',
-    emailSubject: 'Payment recovery for {invoice_number}',
-    showLogo: true,
+    companyName: brandObj.companyName || '',
+    supportEmail: brandObj.supportEmail || user.email,
+    logoUrl: brandObj.logoUrl || '',
+    accentColor: brandObj.accentColor || '#059669',
+    emailTone: user.brandEmailTone || 'professional',
+    emailSubject: user.brandEmailSubject || 'Payment recovery for {invoice_number}',
+    showLogo: brandObj.showLogo !== false,
   });
-
-  const fetchSettings = async () => {
-    try {
-      const { data } = await api.get('/auth/me');
-      if (data.success) {
-        const user = data.data;
-        let brandObj: Record<string, any> = {};
-        try { brandObj = JSON.parse(user.brandSettings || '{}'); } catch { /* use defaults */ }
-        setSettings({
-          companyName: brandObj.companyName || '',
-          supportEmail: brandObj.supportEmail || user.email,
-          logoUrl: brandObj.logoUrl || '',
-          accentColor: brandObj.accentColor || '#059669',
-          emailTone: user.brandEmailTone || 'professional',
-          emailSubject: user.brandEmailSubject || 'Payment recovery for {invoice_number}',
-          showLogo: brandObj.showLogo !== false,
-        });
-      }
-    } catch (err) {
-      toast.error('Failed to load branding settings');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSettings();
-  }, []);
 
   const handleSave = async () => {
     setSaving(true);
+    const newBrandSettings = {
+      companyName: settings.companyName,
+      supportEmail: settings.supportEmail,
+      logoUrl: settings.logoUrl,
+      accentColor: settings.accentColor,
+      showLogo: settings.showLogo,
+    };
     try {
       await api.patch('/auth/branding', {
         brandEmailTone: settings.emailTone,
         brandEmailSubject: settings.emailSubject,
-        brandSettings: {
-          companyName: settings.companyName,
-          supportEmail: settings.supportEmail,
-          logoUrl: settings.logoUrl,
-          accentColor: settings.accentColor,
-          showLogo: settings.showLogo,
-        },
+        brandSettings: newBrandSettings,
+      });
+      onUpdateUser({
+        ...user,
+        brandSettings: JSON.stringify(newBrandSettings),
+        brandEmailTone: settings.emailTone,
+        brandEmailSubject: settings.emailSubject,
       });
       toast.success('Branding updated successfully');
     } catch (err) {
@@ -74,20 +64,13 @@ const Branding: FC = () => {
     { id: 'urgent', label: 'Urgent', desc: 'High emphasis on immediate action and deadlines.' },
   ];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin opacity-50" />
-      </div>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-5xl mx-auto space-y-12 pb-20"
     >
+      <SettingsNav />
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-emerald-500">

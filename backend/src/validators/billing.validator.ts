@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const createSubscriptionSchema = z.object({
   plan: z.enum(['starter', 'pro'], { message: 'plan must be "starter" or "pro"' }),
+  gateway: z.enum(['razorpay', 'stripe']).default('razorpay'),
 });
 
 export const updatePlanSchema = z.object({

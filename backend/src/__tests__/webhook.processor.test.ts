@@ -8,10 +8,19 @@ const mockFetch = mock(async (_url: string, _opts?: any): Promise<any> => ({
 }));
 (globalThis as any).fetch = mockFetch;
 
+// Mock isPrivateUrl before importing the processor
+mock.module('../utils/isPrivateUrl.js', () => ({
+  isPrivateUrl: mock(async () => false),
+}));
+
 // Mock prisma before importing the processor
 const mockCreate = mock(async () => ({}));
+const mockFindUnique = mock(async () => ({ secret: 'test-secret', active: true }));
 mock.module('../utils/prisma.js', () => ({
-  prisma: { webhookDelivery: { create: mockCreate } },
+  prisma: {
+    webhookDelivery: { create: mockCreate },
+    webhookEndpoint: { findUnique: mockFindUnique },
+  },
 }));
 
 import { processWebhookDeliveryJob } from '../jobs/webhook.processor.js';
@@ -24,7 +33,6 @@ describe('processWebhookDeliveryJob', () => {
   const jobData = {
     endpointId: 'ep-1',
     url: 'https://example.com/webhook',
-    secret: 'test-secret',
     event: 'payment.failed',
     body: JSON.stringify({ event: 'payment.failed', data: {}, timestamp: '2026-01-01T00:00:00.000Z' }),
   };
@@ -32,12 +40,14 @@ describe('processWebhookDeliveryJob', () => {
   beforeEach(() => {
     mockFetch.mockClear();
     mockCreate.mockClear();
-    mockFetch.mockImplementation(async () => ({ 
-      ok: true, 
+    mockFindUnique.mockClear();
+    mockFetch.mockImplementation(async () => ({
+      ok: true,
       status: 200,
       text: mock(async () => 'ok')
     }));
     mockCreate.mockImplementation(async () => ({}));
+    mockFindUnique.mockImplementation(async () => ({ secret: 'test-secret', active: true }));
   });
 
   test('calls fetch with correct headers and HMAC signature', async () => {

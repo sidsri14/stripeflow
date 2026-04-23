@@ -5,6 +5,7 @@ import { Shield, Loader2, Activity, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api, API_URL } from '../api';
 import toast from 'react-hot-toast';
+import { SettingsNav } from '../components/common/SettingsNav';
 
 interface AuditLog {
   id: string;
@@ -49,6 +50,7 @@ const Security: FC = () => {
       animate={{ opacity: 1, y: 0 }}
       className="max-w-6xl mx-auto space-y-10 pb-20"
     >
+      <SettingsNav />
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-stone-100 dark:bg-stone-800 rounded-xl">

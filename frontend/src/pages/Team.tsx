@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Users, UserPlus, Shield, Trash2, CheckCircle2, ChevronRight, Loader2, Send, Building2, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api';
 import { toast } from 'react-hot-toast';
 import { ConfirmModal } from '../components/shared/ConfirmModal';
+import { SettingsNav } from '../components/common/SettingsNav';
 
 const Team = () => {
-  const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState<any[]>([]);
-  const [orgs, setOrgs] = useState<any[]>([]);
-  const [activeOrg, setActiveOrg] = useState<any>(null);
+  const queryClient = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
   const [showCreateOrg, setShowCreateOrg] = useState(false);
   const [showRenameOrg, setShowRenameOrg] = useState(false);
@@ -23,30 +22,31 @@ const Team = () => {
   const [confirmRemove, setConfirmRemove] = useState<{ userId: string; name: string } | null>(null);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+  const [localMembers, setLocalMembers] = useState<any[] | null>(null);
+
+  const { data: teamData, isLoading } = useQuery({
+    queryKey: ['team'],
+    queryFn: async () => {
+      const { data: orgData } = await api.get('/team/my');
+      const orgs = orgData.data as any[];
+      if (orgs.length === 0) return { orgs: [], activeOrg: null, members: [] };
+      const { data: memberData } = await api.get(`/team/${orgs[0].id}/members`);
+      return { orgs, activeOrg: orgs[0], members: memberData.data.members as any[] };
+    },
+    staleTime: 60_000,
+  });
+
+  const orgs: any[] = teamData?.orgs ?? [];
+  const activeOrg: any = teamData?.activeOrg ?? null;
+  const members: any[] = localMembers ?? teamData?.members ?? [];
+
+  const refreshTeam = () => {
+    setLocalMembers(null);
+    queryClient.invalidateQueries({ queryKey: ['team'] });
+  };
 
   const isAdminOrOwner = activeOrg?.role === 'owner' || activeOrg?.role === 'admin';
   const isOwner = activeOrg?.role === 'owner';
-
-  const fetchTeamData = async () => {
-    try {
-      const { data: orgData } = await api.get('/team/my');
-      setOrgs(orgData.data);
-      if (orgData.data.length > 0) {
-        const defaultOrg = orgData.data[0];
-        setActiveOrg(defaultOrg);
-        const { data: memberData } = await api.get(`/team/${defaultOrg.id}/members`);
-        setMembers(memberData.data.members);
-      }
-    } catch (err) {
-      toast.error('Failed to load team data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTeamData();
-  }, []);
 
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +57,7 @@ const Team = () => {
       toast.success('Organization created!');
       setNewOrgName('');
       setShowCreateOrg(false);
-      fetchTeamData();
+      refreshTeam();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to create organization');
     } finally {
@@ -73,7 +73,7 @@ const Team = () => {
       await api.patch(`/team/${activeOrg.id}`, { name: renameOrgName.trim() });
       toast.success('Organization renamed!');
       setShowRenameOrg(false);
-      fetchTeamData();
+      refreshTeam();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to rename organization');
     } finally {
@@ -90,7 +90,7 @@ const Team = () => {
       toast.success('Invitation sent!');
       setInviteEmail('');
       setShowInvite(false);
-      fetchTeamData();
+      refreshTeam();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to invite user');
     } finally {
@@ -104,7 +104,7 @@ const Team = () => {
     try {
       await api.patch(`/team/${activeOrg.id}/members/${userId}`, { role: newRole });
       toast.success('Role updated');
-      setMembers(prev => prev.map(m => m.user.id === userId ? { ...m, role: newRole } : m));
+      setLocalMembers(prev => (prev ?? members).map(m => m.user.id === userId ? { ...m, role: newRole } : m));
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to update role');
     } finally {
@@ -118,7 +118,7 @@ const Team = () => {
     try {
       await api.delete(`/team/${activeOrg.id}/members/${confirmRemove.userId}`);
       toast.success('Member removed');
-      setMembers(prev => prev.filter(m => m.user.id !== confirmRemove.userId));
+      setLocalMembers(prev => (prev ?? members).filter(m => m.user.id !== confirmRemove.userId));
       setConfirmRemove(null);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to remove member');
@@ -127,7 +127,7 @@ const Team = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 text-emerald-500 animate-spin opacity-50" />
@@ -280,6 +280,7 @@ const Team = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-10">
+      <SettingsNav />
       {renderContent()}
 
       {/* ── Remove member confirm */}
