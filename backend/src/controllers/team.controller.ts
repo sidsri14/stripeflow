@@ -2,6 +2,7 @@ import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '../middleware/auth.middleware.js';
 import { prisma } from '../utils/prisma.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
+import { logAuditAction } from '../services/audit.service.js';
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
@@ -78,6 +79,7 @@ export const createOrganization = async (req: AuthRequest, res: Response, next: 
       }
     });
 
+    void logAuditAction(req.userId!, 'ORG_CREATE', 'Organization', organization.id, { name });
     successResponse(res, organization, 201);
   } catch (err) { next(err); }
 };
@@ -164,6 +166,7 @@ export const inviteUser = async (req: AuthRequest, res: Response, next: NextFunc
       html: `<h2>Team Invitation</h2><p><strong>${esc(inviter?.name || 'A teammate')}</strong> has invited you to join <strong>${esc(newMember.organization.name)}</strong> on StripeFlow.</p><p><a href="${inviteLink}" style="background:#000;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;">Go to Dashboard</a></p>`,
     }).catch((err: unknown) => console.error('[InviteEmail] Failed to send:', err));
 
+    void logAuditAction(req.userId!, 'TEAM_INVITE', 'Organization', orgId, { invitedEmail: email, role });
     successResponse(res, newMember, 201);
   } catch (err) { next(err); }
 };
@@ -198,6 +201,7 @@ export const updateMember = async (req: AuthRequest, res: Response, next: NextFu
       where: { id: target.id },
       data: { role },
     });
+    void logAuditAction(req.userId!, 'TEAM_ROLE_UPDATE', 'Organization', orgId, { targetUserId, newRole: role });
     successResponse(res, updated);
   } catch (err) { next(err); }
 };
@@ -230,6 +234,7 @@ export const removeMember = async (req: AuthRequest, res: Response, next: NextFu
     }
 
     await prisma.membership.delete({ where: { id: target.id } });
+    void logAuditAction(req.userId!, 'TEAM_MEMBER_REMOVE', 'Organization', orgId, { removedUserId: targetUserId });
     successResponse(res, { removed: true });
   } catch (err) { next(err); }
 };
