@@ -141,51 +141,91 @@ const LandingPage: FC = () => {
           </div>
         </section>
 
-        {/* Pricing Tease */}
+        {/* Pricing */}
         <section className="pb-44 px-6 relative">
-          <div className="max-w-4xl mx-auto text-center space-y-16">
+          <div className="max-w-5xl mx-auto text-center space-y-16">
             <div className="space-y-4">
-              <h2 className="text-5xl md:text-7xl font-black tracking-tighter gradient-heading">Symphony of Sales.</h2>
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Simple, Sophisticated Pricing</p>
+              <h2 className="text-5xl md:text-7xl font-black tracking-tighter gradient-heading">Simple Pricing.</h2>
+              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">No hidden fees. No lock-in.</p>
             </div>
 
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              className="glass-card hover:scale-100 !p-16 space-y-10 glow-emerald max-w-2xl mx-auto"
-            >
-              <div className="inline-block px-4 py-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">
-                Start for Free
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-4xl font-black">Professional</h3>
-                <div className="flex items-center justify-center gap-3">
-                   <span className="text-7xl font-black tracking-tighter">$19</span>
-                   <span className="text-slate-400 font-bold text-sm">/ mo</span>
-                </div>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">$190 / year (2 months free)</p>
-              </div>
-              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                {[
-                  'Unlimited Global Invoices',
-                  'Automated Payment Reminders',
-                  'Custom Brand Experience',
-                  'Client Analytics Dashboard',
-                  'Priority Support'
-                ].map(item => (
-                  <div key={item} className="flex items-center gap-4 text-slate-600 dark:text-slate-400 font-bold text-sm">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> {item}
-                  </div>
-                ))}
-              </div>
-              <button 
-                onClick={() => navigate('/register')} 
-                className="w-full btn-primary !py-6 !text-[13px] justify-center group"
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+              {/* Free */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                className="glass-card !p-12 space-y-8 text-left"
               >
-                Get Started Now <Sparkles className="ml-2 w-4 h-4 group-hover:rotate-12 transition-transform" />
-              </button>
-            </motion.div>
+                <div className="inline-block px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-widest">
+                  Free
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-black">Starter</h3>
+                  <div className="flex items-end gap-2">
+                    <span className="text-5xl font-black tracking-tighter">$0</span>
+                    <span className="text-slate-400 font-bold text-sm mb-1">/ mo</span>
+                  </div>
+                </div>
+                <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  {[
+                    '3 invoices / month',
+                    'Stripe payment links',
+                    'PDF generation',
+                  ].map(item => (
+                    <div key={item} className="flex items-center gap-3 text-slate-600 dark:text-slate-400 font-bold text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-slate-400 shrink-0" /> {item}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => navigate('/register')}
+                  className="w-full btn-secondary !py-4 !text-[13px] justify-center"
+                >
+                  Start Free
+                </button>
+              </motion.div>
+
+              {/* Pro */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="glass-card !p-12 space-y-8 text-left glow-emerald"
+              >
+                <div className="inline-block px-4 py-1.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">
+                  Pro
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-black">Professional</h3>
+                  <div className="flex items-end gap-2">
+                    <span className="text-5xl font-black tracking-tighter">$19</span>
+                    <span className="text-slate-400 font-bold text-sm mb-1">/ mo</span>
+                  </div>
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">$190 / year — 2 months free</p>
+                </div>
+                <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  {[
+                    'Unlimited invoices',
+                    'Automatic email reminders',
+                    'Client analytics dashboard',
+                    'Custom branding',
+                    'Priority support',
+                  ].map(item => (
+                    <div key={item} className="flex items-center gap-3 text-slate-600 dark:text-slate-400 font-bold text-sm">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" /> {item}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => navigate('/register')}
+                  className="w-full btn-primary !py-4 !text-[13px] justify-center group"
+                >
+                  Get Started <Sparkles className="ml-2 w-4 h-4 group-hover:rotate-12 transition-transform" />
+                </button>
+              </motion.div>
+            </div>
           </div>
         </section>
       </main>
