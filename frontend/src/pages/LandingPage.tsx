@@ -69,7 +69,7 @@ const LandingPage: FC = () => {
               animate={{ opacity: 1, y: 0 }}
               className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] shadow-glow"
             >
-              <Sparkles className="w-3.5 h-3.5" /> Premium Invoicing & Recovery Flow
+              <Sparkles className="w-3.5 h-3.5" /> Invoice. Send. Get Paid. Automatically.
             </motion.div>
             
             <motion.div style={{ y: y1 }}>
@@ -78,7 +78,7 @@ const LandingPage: FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-6xl md:text-9xl font-black gradient-heading tracking-tighter leading-[0.85] mb-8"
               >
-                CREATE INVOICES <br /> <span className="text-emerald-500 dark:text-emerald-400">IN 10 SECONDS.</span>
+                Create invoice.<br /><span className="text-emerald-500 dark:text-emerald-400">Get paid faster.</span>
               </motion.h1>
 
               <motion.p
@@ -87,7 +87,7 @@ const LandingPage: FC = () => {
                 transition={{ delay: 0.3 }}
                 className="max-w-2xl mx-auto text-slate-500 dark:text-slate-400 text-lg md:text-xl font-medium leading-relaxed"
               >
-                Get paid faster with auto Stripe links + reminders. Global. Simple.
+                Global freelance invoicing with automatic email reminders. No chasing. No bullshit. $19/mo.
               </motion.p>
             </motion.div>
 
@@ -119,7 +119,7 @@ const LandingPage: FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
                 { icon: FileText, title: 'Branded PDFs', desc: 'Automatic generation of world-class, premium PDF invoices that speak your brand language.', color: 'emerald' },
-                { icon: Send, title: 'Auto-Reminders', desc: 'Intelligent, humane recovery sequences via Resend and WhatsApp. Stop chasing, start receiving.', color: 'blue' },
+                { icon: Send, title: 'Auto-Reminders', desc: 'Smart automatic reminders via email. 3 days → gentle nudge. 7 days → final push. Clients pay while you code/sleep/design.', color: 'blue' },
                 { icon: CreditCard, title: 'Instant Stripe', desc: 'Frictionless Stripe Checkout sessions integrated into every invoice for lightning-fast payouts.', color: 'purple' }
               ].map((feat, idx) => (
                 <motion.div
@@ -207,7 +207,7 @@ const LandingPage: FC = () => {
               <Link to="/contact" className="hover:text-emerald-500 transition-colors">Contact</Link>
             </div>
             <p className="text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-[0.3em]">
-              &copy; 2026 StripeFlow Core Engine &middot; Premium Recovery Flow
+              &copy; 2026 StripeFlow &middot; Simple Global Invoicing
             </p>
           </div>
         </div>
