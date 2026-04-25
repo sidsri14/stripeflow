@@ -58,6 +58,7 @@ export const invoiceWorker = new Worker(
     // lockDuration: job lock TTL (default 30s → 5min), lockRenewTime = lockDuration/2
     stalledInterval: 300_000,
     lockDuration: 300_000,
+    drainDelay: 10,
   }
 );
 

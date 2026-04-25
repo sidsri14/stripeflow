@@ -169,7 +169,7 @@ app.get('/health', async (_req, res) => {
 const statsQueue = new Queue('payment-recovery', { connection: redisConnection });
 
 // In-memory cache for queue stats — reduces Redis calls from every poll to once per 30s
-const QUEUE_STATS_CACHE_TTL_MS = 30_000;
+const QUEUE_STATS_CACHE_TTL_MS = 120_000;
 let queueStatsCache: { data: object; expiresAt: number } | null = null;
 
 // Queue Stats (authenticated — for dashboard use)
