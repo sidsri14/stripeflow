@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { prisma } from '../utils/prisma.js';
+import { logAuditAction } from '../services/audit.service.js';
 
 let _stripe: Stripe | null = null;
 const getStripe = () => {
@@ -80,6 +81,7 @@ export class StripeBillingService {
       },
     });
 
+    void logAuditAction(userId, 'BILLING_CHECKOUT_CREATE', 'Subscription', session.id, { plan });
     return {
       id: session.id,
       checkoutUrl: session.url,
@@ -148,6 +150,7 @@ export class StripeBillingService {
             where: { id: userId },
             data: { plan },
           });
+          void logAuditAction(userId, 'BILLING_UPGRADE_SUCCESS', 'Subscription', data.subscription, { plan });
         }
 
         // Handle one-off invoice payments
@@ -159,6 +162,8 @@ export class StripeBillingService {
             where: { id: invoiceId, status: { not: 'PAID' } },
             data: { status: 'PAID', paidAt: new Date() },
           });
+          const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+          if (invoice) void logAuditAction(invoice.userId, 'INVOICE_PAY_SUCCESS', 'Invoice', invoiceId);
         }
         break;
       }
@@ -179,6 +184,7 @@ export class StripeBillingService {
             where: { id: subRecord.userId },
             data: { plan: 'free' },
           });
+          void logAuditAction(subRecord.userId, 'BILLING_CANCEL', 'Subscription', subscriptionId);
         }
         break;
       }

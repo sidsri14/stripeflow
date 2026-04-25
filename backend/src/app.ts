@@ -192,7 +192,16 @@ app.get('/api/queue/stats', requireAuth, async (_req, res) => {
     queueStatsCache = { data, expiresAt: Date.now() + QUEUE_STATS_CACHE_TTL_MS };
     res.json({ success: true, data });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: 'Failed to read queue stats' });
+    // If Redis is down or at limit, fail gracefully with zeroed counts rather than a 500.
+    // This keeps the dashboard UI stable.
+    res.json({
+      success: true,
+      data: {
+        queue: { waiting: 0, active: 0, failed: 0, delayed: 0, completed: 0 },
+        worker: { status: 'degraded', lastSeenMs: null }
+      },
+      degraded: true
+    });
   }
 });
 

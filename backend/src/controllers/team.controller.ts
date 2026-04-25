@@ -133,8 +133,18 @@ export const inviteUser = async (req: AuthRequest, res: Response, next: NextFunc
 
     // Find the user to invite — return the same response whether the email exists
     // or not to prevent registered-email enumeration.
-    const userToInvite = await prisma.user.findUnique({ where: { email } });
-    if (!userToInvite) return successResponse(res, { queued: true }, 200);
+    // Find the user to invite — if they don't exist, create a placeholder
+    // user so they can be added to the organization immediately.
+    let userToInvite = await prisma.user.findUnique({ where: { email } });
+    if (!userToInvite) {
+      userToInvite = await prisma.user.create({
+        data: {
+          email,
+          emailVerified: false,
+          plan: 'free',
+        }
+      });
+    }
 
     // Check if already a member
     const existing = await prisma.membership.findFirst({
