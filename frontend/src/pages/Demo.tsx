@@ -15,7 +15,7 @@ const Demo: FC = () => {
   const [success, setSuccess] = useState<any>(null);
 
   useEffect(() => {
-    const fetchInvoice = async () => {
+    async function fetchInvoice() {
       if (!invoiceId) {
         setLoading(false);
         return;
@@ -30,7 +30,7 @@ const Demo: FC = () => {
       } finally {
         setLoading(false);
       }
-    };
+    }
     fetchInvoice();
   }, [invoiceId]);
 
@@ -229,7 +229,7 @@ const Demo: FC = () => {
             {isPaid ? (
               <div className="bg-emerald-50 rounded-2xl p-6 flex flex-col items-center gap-4 text-center border border-emerald-100">
                 <div className="bg-emerald-500 p-3 rounded-full text-white">
-                  <CheckCircle2 className="w-8 h-8" />
+                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <div>
                   <h3 className="font-bold text-emerald-900">Payment Confirmed</h3>
