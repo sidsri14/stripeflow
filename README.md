@@ -1,18 +1,18 @@
-# StripeFlow 💎
-### **Elite Payment Recovery & Invoicing for Modern Businesses**
+# InvoiceFlow 💎
+### **Elite Freelance Invoicing & Automated Payment Reminders**
 
-StripeFlow is a world-class failed payment recovery engine. We transform the tedious task of chasing payments into an automated, high-converting revenue stream. Designed for freelancers and D2C brands who demand premium aesthetics and absolute reliability.
+InvoiceFlow is a premium invoicing platform designed for the modern freelancer. We transform the friction of billing into a high-converting, professional experience. Create branded invoices in seconds, send them via Resend, and get paid instantly via Stripe Checkout.
 
 ---
 
 ## ✨ Core Pillars
 
-*   **🎨 Premium Branded Invoicing**: Generate world-class PDF invoices with glassmorphic designs that elevate your brand perception.
-*   **🤖 Intelligent Recovery Flow**: Multi-channel automation (Email via Resend, WhatsApp via Twilio) to win back lost revenue effortlessly.
-*   **⚡ Stripe Checkout Integration**: One-click payment sessions built into every invoice for maximum conversion and zero friction.
-*   **📊 Executive Dashboard**: Deep-dive into recovery trends, conversion rates, and revenue impact with high-fidelity charts.
-*   **🛡️ Enterprise-Grade Core**: Built with Bun for speed, secure JWT authentication, and hardened CSRF protection.
-*   **🇮🇳 India-First Architecture**: Native support for INR (₹) and optimized for the unique payment recovery needs of the Indian market.
+*   **🎨 Premium Branded Invoicing**: Generate world-class PDF invoices with modern, glassmorphic designs that elevate your brand perception.
+*   **🤖 Intelligent Reminders**: Smart automatic reminders via email (Resend) to ensure you get paid on time without the awkward chasing.
+*   **⚡ Stripe Checkout Integration**: Frictionless Stripe payment sessions built into every invoice for maximum conversion.
+*   **📊 Executive Dashboard**: Track your earnings, pending invoices, and client activity with high-fidelity charts.
+*   **🛡️ Secure & Reliable**: Built with React 19, Node.js, and BullMQ for robust background processing.
+*   **🌐 Global & Local**: Native support for USD ($) and INR (₹), designed for freelancers working across borders.
 
 ---
 
@@ -20,48 +20,47 @@ StripeFlow is a world-class failed payment recovery engine. We transform the ted
 
 | Layer | Technology |
 | :--- | :--- |
-| **API Engine** | Bun, Express, Node.js |
-| **Persistence** | Prisma (ORM), SQLite (Edge-ready) |
+| **API Core** | Node.js, Express, Prisma (ORM) |
+| **Background Jobs** | BullMQ, Redis (Upstash) |
 | **Frontend** | React 19, Vite, Tailwind CSS 4, Framer Motion |
-| **Analytics** | Recharts (High-fidelity data viz) |
-| **Communications** | Resend (Email), Twilio (WhatsApp/SMS) |
-| **Verification** | Live Subagent E2E Walkthroughs |
+| **Email Delivery** | Resend (Verified for getinvoiceflow.fun) |
+| **Payment Engine** | Stripe Checkout (Test & Live Mode) |
+| **Persistence** | Neon Postgres (Serverless) |
 
 ---
 
-## 🚀 Speed to Market
+## 🚀 Getting Started
 
 ### **Local Development**
 1.  **Clone & Initialize**:
     ```bash
-    git clone https://github.com/sidsri14/PayRecover.git
-    cd PayRecover
-    cd backend && bun install
+    git clone https://github.com/sidsri14/invoiceflow.git
+    cd invoiceflow
+    cd backend && npm install
     cd ../frontend && npm install
     ```
-2.  **Environment Sync**:
-    Configure `backend/.env` with your Stripe/Razorpay keys, Twilio SID, and Resend API key.
-3.  **Launch the Engine**:
-    - **Back-end Core**: `cd backend && bun run src/index.ts`
-    - **Background Worker**: `cd backend && bun run src/worker.ts`
-    - **Executive Dashboard**: `cd frontend && npm run dev`
+2.  **Environment Setup**:
+    Configure `backend/.env` with your `STRIPE_SECRET_KEY`, `RESEND_API_KEY`, and `DATABASE_URL`.
+3.  **Launch the System**:
+    - **Back-end API**: `cd backend && npm run dev`
+    - **Background Worker**: `cd backend && npm run worker`
+    - **Frontend Dashboard**: `cd frontend && npm run dev`
 
-### **Deployment Architecture**
+### **Deployment**
 *   **Frontend**: Professional-grade deployment on **Vercel**.
-*   **Core API**: Scalable containerized deployment on **Railway**.
+*   **Core API & Workers**: Scalable deployment on **Railway**.
 
 ---
 
-## 📈 Roadmap 2026
-
-- [x] Multi-channel Recovery (Email + WA)
-- [x] Premium CSS/Motion Overhaul
-- [x] Advanced Metric Dashboard
-- [ ] AI-Powered Conversion Prediction
-- [ ] Deep Integration with Slack/Discord
-- [ ] Dedicated SDK for Native App Integration
+## 📈 Roadmap
+- [x] Public Demo Generator (No Auth)
+- [x] Automatic Email Reminders
+- [x] Static HTML Landing Page (SEO)
+- [ ] AI-Powered Invoice Descriptions
+- [ ] Multi-currency Auto-conversion
+- [ ] Team Collaboration Features
 
 ---
 
 ## ⚖️ License
-MIT License. Crafted with precision for businesses that refuse to leave money on the table.
+MIT License. Crafted with precision for freelancers who demand the best.

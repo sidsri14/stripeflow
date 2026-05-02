@@ -104,28 +104,11 @@ const LandingPage: FC = () => {
                 Start for Free <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
               </button>
               <button 
-                onClick={() => {
-                  try {
-                    const { data } = await api.get(`/demo/invoice/${invoiceId}`);
-                    setInvoice(data.data);
-                  } catch (err: any) {
-                    if (invoiceId) {
-                      setError(err.response?.data?.error || 'Failed to load invoice.');
-                    }
-                  } finally {
-                    setLoading(false);
-                    if (!invoiceId) {
-                      setLoading(false);
-                      return;
-                    }
-                  }
-                }} 
-                className="btn-secondary !px-12 !py-6 !text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800 transition-all hover:scale-105 active:scale-95"
+                onClick={() => navigate('/demo')} 
+                className="btn-secondary !px-12 !py-6 !text-[13px] hover:bg-slate-50 dark:hover:bg-slate-800 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
               >
-                <>
-                  <Sparkles className="w-6 h-6" />
-                  Create Test Invoice & Send Email
-                </>
+                <Sparkles className="w-5 h-5" />
+                Try Live Demo
               </button>
             </motion.div>
           </div>
